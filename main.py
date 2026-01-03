@@ -155,17 +155,20 @@ HTML = f"""
       line-height: 1;
     }}
 
+    /* ✅ FIX: grid -> flex column + min-height:0 */
     .modal-body {{
-      flex:1;
-      display:grid;
-      grid-template-columns: 1fr;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       background: linear-gradient(180deg, #fff 0%, #fafbff 100%);
+      min-height: 0; /* 핵심: 자식 overflow가 정상작동 */
     }}
 
     .agent {{
       display:flex; flex-direction:column; align-items:center;
       padding: 18px 18px 0 18px;
       gap: 8px;
+      flex: 0 0 auto;
     }}
     .avatar {{
       width: 92px; height: 92px; border-radius: 50%;
@@ -183,10 +186,12 @@ HTML = f"""
       color: var(--accent);
     }}
 
+    /* ✅ FIX: chat만 스크롤 */
     .chat {{
-      flex:1;
+      flex: 1;
+      min-height: 0;   /* 핵심 */
       padding: 12px 18px 10px 18px;
-      overflow:auto;
+      overflow: auto;  /* 채팅만 스크롤 */
     }}
     .bubble-row {{
       display:flex; gap:10px; margin: 10px 0;
@@ -216,9 +221,17 @@ HTML = f"""
       margin: 0 2px 2px 2px;
     }}
 
+    /* ✅ FIX: 하단 고정 영역(sticky) */
+    .bottom-area {{
+      position: sticky;
+      bottom: 0;
+      background: #fff;
+      border-top: 1px solid var(--line);
+      flex: 0 0 auto;
+    }}
+
     .chips {{
       padding: 10px 18px 6px 18px;
-      border-top: 1px solid var(--line);
       background: #fff;
       display:flex;
       flex-wrap:wrap;
@@ -239,7 +252,7 @@ HTML = f"""
     }}
 
     .composer {{
-      padding: 10px 18px 16px 18px;
+      padding: 10px 18px 12px 18px;
       background:#fff;
       display:flex; gap:10px;
       align-items:center;
@@ -266,7 +279,7 @@ HTML = f"""
     .hint {{
       font-size: 12px;
       color: var(--muted);
-      padding: 0 18px 14px 18px;
+      padding: 0 18px 12px 18px;
       background:#fff;
     }}
   </style>
@@ -300,13 +313,17 @@ HTML = f"""
 
         <div class="chat" id="chat"></div>
 
-        <div class="chips" id="chips"></div>
+        <!-- ✅ FIX: chips + composer + hint 를 bottom-area로 묶어서 항상 아래에 고정 -->
+        <div class="bottom-area">
+          <div class="chips" id="chips"></div>
 
-        <div class="composer">
-          <div class="input">자유 입력은 비활성화되어 있습니다. 아래 질문 버튼을 선택해 주세요.</div>
-          <button class="send">Send</button>
+          <div class="composer">
+            <div class="input">자유 입력은 비활성화되어 있습니다. 아래 질문 버튼을 선택해 주세요.</div>
+            <button class="send">Send</button>
+          </div>
+
+          <div class="hint">※ 실험 통제를 위해 질문은 미리 정의된 선택지로만 진행됩니다.</div>
         </div>
-        <div class="hint">※ 실험 통제를 위해 질문은 미리 정의된 선택지로만 진행됩니다.</div>
       </div>
     </div>
   </div>
@@ -367,10 +384,8 @@ HTML = f"""
   }}
 
   function renderQuestions(cat) {{
-    // 카테고리 선택 시 하단에 질문 칩들을 추가로 보여주고 싶으면
-    // 여기서는 간단히 alert 대신: 채팅 아래에 질문 칩을 바꾸는 형태로 구현
     chips.innerHTML = "";
-    // 상단에 "뒤로" + 카테고리 유지
+
     const back = document.createElement("div");
     back.className = "chip";
     back.textContent = "← categories";
@@ -385,7 +400,6 @@ HTML = f"""
       q.className = "chip active";
       q.textContent = label;
       q.onclick = () => {{
-        // 사용자 발화는 "선택한 질문"으로 기록
         addBubble("USER", label);
         wsSend({{ type: "question", sid, qid, label }});
       }};
@@ -407,7 +421,6 @@ HTML = f"""
   }}
 
   ws.onopen = () => {{
-    // 서버에 hello 보내고, 첫 AI 발화 받기
     wsSend({{ type: "hello", sid }});
   }};
 
@@ -427,11 +440,9 @@ HTML = f"""
   }};
 
   ws.onclose = () => {{
-    // serverless 콜드스타트로 가끔 끊길 수 있어 안내
     addBubble("AI", "[연결 종료] 새로고침하면 다시 연결됩니다.");
   }};
 
-  // 닫기 버튼: 실험에선 "다음 단계"로 이동시키거나 종료 처리로 바꾸면 됨
   document.getElementById("closeBtn").onclick = () => {{
     document.getElementById("overlay").style.display = "none";
   }};
@@ -486,6 +497,7 @@ async def ws_endpoint(ws: WebSocket):
             elif mtype == "question":
                 qid = str(payload.get("qid", ""))[:64]
                 label = str(payload.get("label", ""))[:200]
+
                 # 로그
                 log_event({"event": "question", "sid": sid, "qid": qid, "label": label})
 
