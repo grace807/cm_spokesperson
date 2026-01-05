@@ -12,47 +12,57 @@ app = FastAPI()
 # qid -> 고정 답변 텍스트 (논문 실험용 통제)
 ANSWERS = {
     # Cause (3)
-    "cause_1": "사고 원인은 현재 1차 조사 결과, 외부 침해 시도가 내부 접근 통제의 취약점을 우회하면서 발생한 것으로 파악되고 있습니다. 다만 세부 경로는 포렌식이 진행 중이며, 확정 내용은 조사 완료 후 투명하게 공유하겠습니다. 지금은 사실로 확인된 범위만 말씀드리고, 추정은 배제하겠습니다.",
-    "cause_2": "현재까지 확인된 바로는 단일 원인이라기보다, 접근 권한 관리 및 모니터링 체계에서 복합적인 취약점이 작동했을 가능성이 큽니다. 내부 규정 준수 여부와 운영 프로세스의 허점도 함께 점검하고 있습니다. 확정된 근거가 나오면 단계별로 공개하겠습니다.",
-    "cause_3": "외부 공격 가능성은 높게 보고 있으며, 침해 지표(IOC) 기반으로 공격 벡터를 추적 중입니다. 동시에 내부 계정 오남용 가능성도 배제하지 않고 병행 조사하고 있습니다. 결론이 나기 전까지는 단정하지 않겠습니다.",
+    "cause_1": """현재까지의 조사 결과에 따르면 이번 사고는 외부 접근 경로를 통해 일부 고객 정보에 대한 무단 접근으로 발생하였습니다. 
+    
+    정확한 접근 방식과 경위에 대해서는 추가적인 분석이 진행 중입니다.""",
+    "cause_2": """현재까지 확인된 바에 따르면 해당 접근은 8월 24일경부터 일정 기간 동안 발생한 것으로 파악되고 있습니다. 
+    
+    정확한 시점과 지속 기간은 추가 확인 중입니다.""",
+    "cause_3": """무단 접근이 확인된 정보는 이름, 이메일 주소, 전화번호, 배송지 주소, 그리고 일부 주문 정보입니다. 
+    
+    비밀번호, 결제 정보, 신용카드 정보 등의 핵심적인 금융 정보는 포함되지 않았습니다.""",
 
     # Response (3)
-    "response_1": "사고 인지 즉시 관련 시스템을 격리하고, 의심 세션 및 키를 회수했으며, 추가 유출을 막기 위한 차단 조치를 시행했습니다. 동시에 로그 보존과 포렌식 착수를 완료했습니다. 고객 보호를 최우선으로 두고 대응을 진행하고 있습니다.",
-    "response_2": "고객 안내는 사실 확인과 1차 차단이 완료된 시점에 맞춰 진행했습니다. 불완전한 정보로 혼란을 키우지 않기 위해, 확인된 범위와 미확정 범위를 분리해 전달했습니다. 추가 확인 내용은 일정 주기로 업데이트하겠습니다.",
-    "response_3": "관계 기관 및 외부 보안 전문기관과 협력 중이며, 조사 및 재발 방지 권고안을 즉시 반영하고 있습니다. 법적·규제 준수 요구사항에 맞춰 필요한 신고/보고 절차도 진행하고 있습니다. 진행 상황은 투명하게 공유하겠습니다.",
+    "response_1": "사고 인지 이후 해당 보안 시스템에 대해서는 접근 제한 조치가 적용되었습니다. 또한 추가적인 정보 노출을 방지하기 위한 점검이 진행되고 있습니다.",
+    "response_2": "현재 해당 서비스의 주요 기능은 정상적으로 운영되고 있으며, 추가적인 이상 여부를 확인하기 위한 모니터링이 지속되고 있습니다.",
+    "response_3": "사건의 수습 및 추후 처리를 위해 현재 관련 당국과 협력해 사고 원인과 영향을 분석하는 절차가 진행 중입니다.",
 
     # Remedy (3)
-    "remedy_1": "피해 가능성이 있는 대상에게는 공지와 함께 전용 지원 채널을 제공하고 있습니다. 상황에 따라 신원보호/모니터링 지원 등 실질적 보호 조치를 포함해 검토하고 있습니다. 구체 기준은 확인 절차와 함께 명확히 안내드리겠습니다.",
-    "remedy_2": "개별 피해가 의심되는 경우, 본인 확인 후 우선 조치(계정 보호, 재설정, 추가 인증)와 함께 필요한 지원을 제공하겠습니다. 또한 2차 피해 예방 안내를 단계별로 제공할 예정입니다. 불편을 최소화하는 방향으로 지원하겠습니다.",
-    "remedy_3": "전용 문의 채널을 운영하며, 접수된 사례는 우선순위로 처리하고 있습니다. 응답 지연이 발생하지 않도록 인력을 확대 배치했습니다. 문의 경로와 처리 기준은 안내 페이지에 일원화해 제공하겠습니다.",
+    "remedy_1": "현재 발생한 개인정보 유출 사고에 대응해 사용자에게는 계정 보안 강화를 위한 비밀번호 변경 및 보안 설정 점검이 안내되고 있습니다.",
+    "remedy_2": "이번 사고와 관련해 개인적인 문의 사항이나 추가 확인이 필요하신 경우, 고객 지원 채널을 통해 문의를 접수하실 수 있습니다.",
+    "remedy_3": """현재 개별 사용자의 개인 정보 유출을 확인할 수 있는 서비스가 운영되고 있습니다.
+    
+    개인정보 유출 피해를 입으신 고객님들에 대한 추가적인 안내는 공식 공지 채널을 통해 제공될 예정입니다.""",
 
     # Prevention & Future Plan (3)
-    "plan_1": "재발 방지를 위해 접근 권한 관리(최소 권한), 로그/모니터링 고도화, 키/토큰 관리 강화, 정기 침투 테스트를 즉시 강화하겠습니다. 단기·중기·장기 과제로 나눠 일정과 완료 기준을 공개하겠습니다. 실행 결과는 외부 검증도 받겠습니다.",
-    "plan_2": "운영 프로세스 전반(권한 부여/회수, 변경관리, 알림 체계)을 재설계하고, 위기 대응 훈련을 정례화하겠습니다. 또한 보안 책임 체계를 명확히 하고 의사결정 기록을 남기겠습니다. ‘다시는 반복되지 않게’ 구조를 바꾸겠습니다.",
-    "plan_3": "향후 일정은 (1) 1차 조사 결과 공유, (2) 개선안 공개, (3) 외부 검증 결과 공유의 3단계로 진행하겠습니다. 각 단계별 공개 시점과 범위를 미리 안내하겠습니다. 고객 신뢰 회복을 최우선 목표로 두겠습니다.",
+    "plan_1": """향후 유사한 사고를 방지하기 위해 회사에서는 해당 보안 시스템에 대한 접근 제어 절차 및 보안 점검 체계에 대한 검토를 예정하고 있습니다. 또한 현재 해당 시스템 외에도 기존의 보안 시스템에 대한 점검이 진행되고 있습니다. 
+    
+    관련 개선 사항은 검토 및 개선 계획이 수립되는대로 안내될 예정입니다.""",
+    "plan_2": "조사 및 점검 절차의 진행 상황에 따라 주요 업데이트는 공식 공지 채널을 통해 공유될 예정입니다.",
+    "plan_3": "관련 절차가 마무리될 때까지 추가로 확인되는 사항은 공식 채널을 통해 순차적으로 안내될 예정입니다.",
 }
 
 # UI에 보여줄 질문 라벨(프론트용)
 QUESTIONS = {
     "Cause": [
-        ("cause_1", "사고의 원인은 무엇인가요?"),
-        ("cause_2", "내부 관리 문제였나요?"),
-        ("cause_3", "외부 해킹이었나요?"),
+        ("cause_1", "사고 발생 경위"),
+        ("cause_2", "발생 시점"),
+        ("cause_3", "영향 범위"),
     ],
     "Response": [
-        ("response_1", "사고 직후 어떤 조치를 했나요?"),
-        ("response_2", "고객에게 언제 알렸나요?"),
-        ("response_3", "정부/외부기관과 협력하나요?"),
+        ("response_1", "사고 이후 조치"),
+        ("response_2", "현재 운영 상태"),
+        ("response_3", "정부/외부기관과의 협력"),
     ],
     "Remedy": [
-        ("remedy_1", "피해 보상은 어떻게 하나요?"),
-        ("remedy_2", "이미 피해 입은 사람은요?"),
-        ("remedy_3", "지원 창구가 있나요?"),
+        ("remedy_1", "사용자 권장 행동"),
+        ("remedy_2", "개별 문의"),
+        ("remedy_3", "피해 여부 확인"),
     ],
     "Prevention & Future Plan": [
-        ("plan_1", "재발 방지 대책은?"),
-        ("plan_2", "내부 프로세스는 어떻게 바뀌나요?"),
-        ("plan_3", "앞으로 계획/일정은요?"),
+        ("plan_1", "재발 방지 조치"),
+        ("plan_2", "추가 업데이트"),
+        ("plan_3", "사고 수습 예상 완료 시점"),
     ],
 }
 
@@ -281,7 +291,84 @@ HTML = f"""
       color: var(--muted);
       padding: 0 18px 12px 18px;
       background:#fff;
-    }}
+    }}    
+/* Priming screen */
+.priming-wrap {{
+  min-height: 100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 22px;
+}}
+.priming-card {{
+  width: min(980px, 96vw);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+}}
+.priming-top {{
+  padding: 18px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}}
+.news-img{{
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+  padding: 18px;
+}}
+.news-headline{{
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1.25;
+  margin-bottom: 8px;
+  color: #111827;
+}}
+.news-sub{{
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}}
+.priming-mid{{
+  padding: 18px;
+}}
+.priming-title{{
+  font-weight: 800;
+  margin-bottom: 10px;
+}}
+.priming-bullets{{
+  margin: 0;
+  padding-left: 18px;
+  color: #111827;
+  line-height: 1.55;
+}}
+.priming-bullets li{{
+  margin: 8px 0;
+}
+.priming-bottom{{
+  padding: 18px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+  align-items:flex-start;
+}}
+.priming-cta{{
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  padding: 12px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+}}
+.priming-note{{
+  font-size: 12px;
+  color: var(--muted);
+}}  
   </style>
 </head>
 <body>
@@ -295,7 +382,34 @@ HTML = f"""
     </div>
   </div>
 
-  <div class="overlay" id="overlay">
+    <!-- Context Priming Screen -->
+  <div class="priming-wrap" id="priming">
+    <div class="priming-card">
+      <div class="priming-top">
+        <div class="news-img" aria-label="뉴스 기사 이미지 자리">
+          <div class="news-headline">[속보] AI 보안 시스템 운영 대형 커머스 기업, 개인정보 유출 정황</div>
+          <div class="news-sub">외부 접근으로 고객 정보 노출… 기업 “경위 조사 중”</div>
+        </div>
+      </div>
+
+      <div class="priming-mid">
+        <div class="priming-title">📌 사건 요약</div>
+        <ul class="priming-bullets">
+          <li>당신은 방금 개인정보 유출 관련 안내를 받았습니다.</li>
+          <li>안내에 포함된 유출 여부 확인 페이지에서 조회한 결과, 당신의 계정 정보가 이번 사고의 영향 범위에 포함된 것으로 표시되었습니다.</li>
+          <li><b>노출된 것으로 표기된 정보:</b> 이름, 이메일 주소, 전화번호, 배송지 주소, 일부 주문 정보</li>
+          <li><b>포함되지 않은 정보:</b> 계정 비밀번호, 결제 정보, 신용카드 정보</li>
+        </ul>
+      </div>
+
+      <div class="priming-bottom">
+        <button class="priming-cta" id="startChatBtn">AI 대변인의 공식 대응 확인하기</button>
+        <div class="priming-note">※ 다음 단계부터는 사전에 정의된 질문 버튼으로만 진행됩니다.</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="overlay" id="overlay" style="display:none">
     <div class="modal">
       <div class="modal-header">
         <div class="status"><span class="dot"></span><span>Online</span></div>
@@ -445,6 +559,23 @@ HTML = f"""
 
   document.getElementById("closeBtn").onclick = () => {{
     document.getElementById("overlay").style.display = "none";
+  }};
+    // =========================
+  // Context Priming → Chat 전환
+  // =========================
+  const priming = document.getElementById("priming");
+  const overlay = document.getElementById("overlay");
+  const startChatBtn = document.getElementById("startChatBtn");
+
+  startChatBtn.onclick = () => {{
+    // priming 화면 숨기기
+    priming.style.display = "none";
+
+    // 채팅 오버레이 표시
+    overlay.style.display = "flex";
+
+    // 채팅 시작 시 스크롤 보정
+    chat.scrollTop = chat.scrollHeight;
   }};
 </script>
 </body>
