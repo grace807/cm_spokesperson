@@ -346,7 +346,7 @@ HTML = f"""
 }}
 .priming-bullets li{{
   margin: 8px 0;
-}
+}}
 .priming-bottom{{
   padding: 18px;
   border-top: 1px solid var(--line);
@@ -557,10 +557,7 @@ HTML = f"""
     addBubble("AI", "[연결 종료] 새로고침하면 다시 연결됩니다.");
   }};
 
-  document.getElementById("closeBtn").onclick = () => {{
-    document.getElementById("overlay").style.display = "none";
-  }};
-    // =========================
+  // =========================
   // Context Priming → Chat 전환
   // =========================
   const priming = document.getElementById("priming");
@@ -568,13 +565,8 @@ HTML = f"""
   const startChatBtn = document.getElementById("startChatBtn");
 
   startChatBtn.onclick = () => {{
-    // priming 화면 숨기기
     priming.style.display = "none";
-
-    // 채팅 오버레이 표시
     overlay.style.display = "flex";
-
-    // 채팅 시작 시 스크롤 보정
     chat.scrollTop = chat.scrollHeight;
   }};
 </script>
@@ -620,8 +612,9 @@ async def ws_endpoint(ws: WebSocket):
                 # 첫 턴: AI 대변인이 먼저 발화
                 log_event({"event": "hello", "sid": sid})
                 first_msg = (
-                    "문의 주셔서 감사합니다. 저는 이번 개인정보 유출 사고에 대한 공식 안내를 드리는 AI 대변인입니다.\n"
-                    "아래 카테고리에서 질문을 선택하시면, 확인된 사실에 근거해 동일한 형식으로 답변드리겠습니다."
+                    "안녕하세요. 저는 본 사건에 대해 회사의 공식 입장을 전달하는 AI 대변인 ㅇㅇㅇ입니다. \n"
+                    "먼저 이번 개인정보 유출 사고에 대해 사과드립니다. \n"
+                    "저는 현재 확인된 사실과 회사의 대응 상황에 궁금하신 점을 안내드릴 예정입니다. 아래에서 궁금하신 질문을 선택해주시면 그에 대한 정보를 안내드리겠습니다."
                 )
                 await ws.send_text(json.dumps({"type": "ai", "text": first_msg}, ensure_ascii=False))
 
