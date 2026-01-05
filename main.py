@@ -1,10 +1,12 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import json
 import time
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # =========================
 # 1) 질문/답변(캐시) 데이터
@@ -294,11 +296,14 @@ HTML = f"""
     }}    
 /* Priming screen */
 .priming-wrap {{
-  min-height: 100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding: 22px;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 22px;
+  background: var(--bg);
+  z-index: 5;
 }}
 .priming-card {{
   width: min(980px, 96vw);
@@ -307,17 +312,31 @@ HTML = f"""
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   overflow:hidden;
+  max-height: 92vh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }}
 .priming-top {{
   padding: 18px;
   border-bottom: 1px solid var(--line);
   background: #fff;
+  flex: 0 0 auto;
 }}
 .news-img{{
   border-radius: 14px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
   padding: 18px;
+}}
+.news-photo {{
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  margin-top: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
 }}
 .news-headline{{
   font-weight: 800;
@@ -333,6 +352,9 @@ HTML = f"""
 }}
 .priming-mid{{
   padding: 18px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }}
 .priming-title{{
   font-weight: 800;
@@ -354,7 +376,7 @@ HTML = f"""
   display:flex;
   flex-direction:column;
   gap: 10px;
-  align-items:flex-start;
+  align-items: center;
 }}
 .priming-cta{{
   border: none;
@@ -382,32 +404,41 @@ HTML = f"""
     </div>
   </div>
 
-    <!-- Context Priming Screen -->
-  <div class="priming-wrap" id="priming">
-    <div class="priming-card">
-      <div class="priming-top">
-        <div class="news-img" aria-label="뉴스 기사 이미지 자리">
-          <div class="news-headline">[속보] AI 보안 시스템 운영 대형 커머스 기업, 개인정보 유출 정황</div>
-          <div class="news-sub">외부 접근으로 고객 정보 노출… 기업 “경위 조사 중”</div>
-        </div>
-      </div>
+<!-- Context Priming Screen -->
+<div class="priming-wrap" id="priming">
+  <div class="priming-card">
 
-      <div class="priming-mid">
-        <div class="priming-title">📌 사건 요약</div>
-        <ul class="priming-bullets">
-          <li>당신은 방금 개인정보 유출 관련 안내를 받았습니다.</li>
-          <li>안내에 포함된 유출 여부 확인 페이지에서 조회한 결과, 당신의 계정 정보가 이번 사고의 영향 범위에 포함된 것으로 표시되었습니다.</li>
-          <li><b>유출이 확인된 정보:</b> 이름, 이메일 주소, 전화번호, 배송지 주소, 일부 주문 정보</li>
-          <li><b>유출되지 않은 정보:</b> 계정 비밀번호, 결제 정보, 신용카드 정보</li>
-        </ul>
-      </div>
+    <div class="priming-top">
+      <div class="news-img" aria-label="뉴스 기사 이미지 자리">
+        <div class="news-headline">[속보] AI 보안 시스템 운영 대형 커머스 기업, 개인정보 유출 정황</div>
+        <div class="news-sub">외부 접근으로 고객 정보 노출… 기업 “경위 조사 중”</div>
 
-      <div class="priming-bottom">
-        <button class="priming-cta" id="startChatBtn">AI 대변인의 공식 대응 확인하기</button>
-        <div class="priming-note">※ 다음 단계부터는 사전에 정의된 질문 버튼으로만 진행됩니다.</div>
+        <!-- fake 뉴스 이미지 -->
+        <img
+          src="/static/fake_news.png"
+          alt="개인정보 유출 관련 뉴스 이미지"
+          class="news-photo"
+        />
       </div>
     </div>
+
+    <div class="priming-mid">
+      <div class="priming-title">📌 사건 요약</div>
+      <ul class="priming-bullets">
+        <li>당신은 방금 개인정보 유출 관련 안내를 받았습니다.</li>
+        <li>안내에 포함된 유출 여부 확인 페이지에서 조회한 결과, 당신의 계정 정보가 이번 사고의 영향 범위에 포함된 것으로 표시되었습니다.</li>
+        <li><b>유출된 정보:</b> 이름, 이메일 주소, 전화번호, 배송지 주소, 일부 주문 정보</li>
+        <li><b>유출되지 않은 정보:</b> 계정 비밀번호, 결제 정보, 신용카드 정보</li>
+      </ul>
+    </div>
+
+    <div class="priming-bottom">
+      <button class="priming-cta" id="startChatBtn">AI 대변인의 공식 대응 확인하기</button>
+      <div class="priming-note">※ 다음 단계부터는 사전에 정의된 질문 버튼으로만 진행됩니다.</div>
+    </div>
+
   </div>
+</div>
   
   <div class="overlay" id="overlay" style="display:none">
     <div class="modal">
