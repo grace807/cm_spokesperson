@@ -16,7 +16,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Avatar config (env-based)
 AVATAR_MODE = os.environ.get("AVATAR_MODE", "pink")  # pink | photo
-AVATAR_URL = os.environ.get("AVATAR_URL", "/static/spokesperson_profile.png")
+AVATAR_URL = os.environ.get("AVATAR_URL", "/static/spokesperson_profile.jpeg")
 
 # =========================
 # 0) 실험 설정
