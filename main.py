@@ -4,86 +4,151 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import json
 import time
+import os
+import csv
+import asyncio
+
+# OpenAI (server-side only)
+from openai import OpenAI
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Avatar config (env-based)
+AVATAR_MODE = os.environ.get("AVATAR_MODE", "pink")  # pink | photo
+AVATAR_URL = os.environ.get("AVATAR_URL", "/static/spokesperson_profile.png")
+
 # =========================
-# 1) 질문/답변(캐시) 데이터
+# 0) 실험 설정
 # =========================
-# qid -> 고정 답변 텍스트 (논문 실험용 통제)
-ANSWERS = {
-    # Cause (3)
-    "cause_1": """현재까지의 조사 결과에 따르면 이번 사고는 외부 접근 경로를 통해 일부 고객 정보에 대한 무단 접근으로 발생하였습니다. 
-    
-정확한 접근 방식과 경위에 대해서는 추가적인 분석이 진행 중입니다.""",
-    "cause_2": """현재까지 확인된 바에 따르면 해당 접근은 8월 24일경부터 일정 기간 동안 발생한 것으로 파악되고 있습니다. 
-    
-정확한 시점과 지속 기간은 추가 확인 중입니다.""",
-    "cause_3": """무단 접근이 확인된 정보는 이름, 이메일 주소, 전화번호, 배송지 주소, 그리고 일부 주문 정보입니다. 
-    
-비밀번호, 결제 정보, 신용카드 정보 등의 핵심적인 금융 정보는 포함되지 않았습니다.""",
+MAX_QUESTIONS = 3
+TIME_LIMIT_SECONDS = 3 * 60  # 3분
+FOLLOWUP_CSV_NAME = "followup.csv"
 
-    # Response (3)
-    "response_1": "사고 인지 이후 해당 보안 시스템에 대해서는 접근 제한 조치가 적용되었습니다. 또한 추가적인 정보 노출을 방지하기 위한 점검이 진행되고 있습니다.",
-    "response_2": "현재 해당 서비스의 주요 기능은 정상적으로 운영되고 있으며, 추가적인 이상 여부를 확인하기 위한 모니터링이 지속되고 있습니다.",
-    "response_3": "사건의 수습 및 추후 처리를 위해 현재 관련 당국과 협력해 사고 원인과 영향을 분석하는 절차가 진행 중입니다.",
+# GPT 모델/프롬프트는 여기서 계속 튜닝하면 됨
+MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")  # 예시. 배포환경에서 바꿔도 됨.
+SYSTEM_PROMPT = """
+너는 회사의 공식 입장을 전달하는 AI 대변인이다.
+- 확인된 사실만 말한다. 추정/단정/과장 금지.
+- 사과(공감) + 현재 확인된 사실 + 회사의 조치 + 앞으로의 안내 순서로 답한다.
+- 개인정보/보안 사고 대응에 있어 법적 확정 표현(“~했다” 단정)을 피하고, “현재까지 확인된 바” 형태를 선호한다.
+- 불필요하게 길게 쓰지 말고 6~10문장 이내로 답한다.
+""".strip()
 
-    # Remedy (3)
-    "remedy_1": "현재 발생한 개인정보 유출 사고에 대응해 사용자에게는 계정 보안 강화를 위한 비밀번호 변경 및 보안 설정 점검이 안내되고 있습니다.",
-    "remedy_2": "이번 사고와 관련해 개인적인 문의 사항이나 추가 확인이 필요하신 경우, 고객 지원 채널을 통해 문의를 접수하실 수 있습니다.",
-    "remedy_3": """현재 개별 사용자의 개인 정보 유출을 확인할 수 있는 서비스가 운영되고 있습니다.
-    
-개인정보 유출 피해를 입으신 고객님들에 대한 추가적인 안내는 공식 공지 채널을 통해 제공될 예정입니다.""",
+INCIDENT_FACTS = """
+[사건 요약]
+- 외부 접근 경로를 통해 일부 고객 개인정보에 대한 무단 접근 발생
+- 무단 접근은 2025년 8월 24일경부터 일정 기간 동안 발생한 것으로 파악됨
+- 접근 방식 및 정확한 경위는 현재 추가 분석이 진행 중
+- 무단 접근이 확인된 정보: 이름, 이메일 주소, 전화번호, 배송지 주소, 일부 주문 정보
+- 계정 비밀번호, 로그인 정보, 결제 정보, 신용카드 정보는 포함되지 않음
+- 사고 인지 이후 관련 시스템에 대한 접근 제한 조치 및 보안 점검 진행
+- 현재 관계 기관과 협력하여 사고 원인 및 영향에 대한 조사 진행 중
+- 본 사고로 인한 서비스 중단은 발생하지 않음
+""".strip()
 
-    # Prevention & Future Plan (3)
-    "plan_1": """향후 유사한 사고를 방지하기 위해 회사에서는 해당 보안 시스템에 대한 접근 제어 절차 및 보안 점검 체계에 대한 검토를 예정하고 있습니다. 또한 현재 해당 시스템 외에도 기존의 보안 시스템에 대한 점검이 진행되고 있습니다. 
-    
-관련 개선 사항은 검토 및 개선 계획이 수립되는대로 안내될 예정입니다.""",
-    "plan_2": "조사 및 점검 절차의 진행 상황에 따라 주요 업데이트는 공식 공지 채널을 통해 공유될 예정입니다.",
-    "plan_3": "관련 절차가 마무리될 때까지 추가로 확인되는 사항은 공식 채널을 통해 순차적으로 안내될 예정입니다.",
-}
+client = OpenAI()  # OPENAI_API_KEY 환경변수 사용
 
-# UI에 보여줄 질문 라벨(프론트용)
+
+# =========================
+# 1) UI에 보여줄 추천 질문(프론트용)
+# =========================``
 QUESTIONS = {
     "Cause": [
-        ("cause_1", "사고 발생 경위"),
-        ("cause_2", "발생 시점"),
-        ("cause_3", "영향 범위"),
+        ("q1", "사고 발생 경위가 어떻게 되나요?"),
+        ("q2", "발생 시점은 언제인가요?"),
+        ("q3", "영향 범위(유출된 정보)는 무엇인가요?"),
     ],
     "Response": [
-        ("response_1", "사고 이후 조치"),
-        ("response_2", "현재 운영 상태"),
-        ("response_3", "정부/외부기관과의 협력"),
+        ("q4", "사고 이후 회사가 한 조치는 무엇인가요?"),
+        ("q5", "현재 서비스는 정상 운영 중인가요?"),
+        ("q6", "정부/외부기관과 협력은 어떻게 진행되나요?"),
     ],
     "Remedy": [
-        ("remedy_1", "사용자 권장 행동"),
-        ("remedy_2", "개별 문의"),
-        ("remedy_3", "피해 여부 확인"),
+        ("q7", "사용자가 지금 당장 해야 할 조치는 뭔가요?"),
+        ("q8", "개별 문의/지원은 어디로 하면 되나요?"),
+        ("q9", "내 정보 유출 여부는 어떻게 확인하나요?"),
     ],
     "Prevention & Future Plan": [
-        ("plan_1", "재발 방지 조치"),
-        ("plan_2", "추가 업데이트"),
-        ("plan_3", "사고 수습 예상 완료 시점"),
+        ("q10", "재발 방지 계획은 무엇인가요?"),
+        ("q11", "추가 업데이트는 어디서 확인하나요?"),
+        ("q12", "사고 수습 예상 완료 시점은요?"),
     ],
 }
 
 # =========================
-# 2) 로그 저장(JSONL)
+# 2) 로그(JSONL) + Followup CSV
 # =========================
 LOG_DIR = Path("logs")
 LOG_DIR.mkdir(exist_ok=True)
 LOG_FILE = LOG_DIR / "events.jsonl"
+FOLLOWUP_CSV = LOG_DIR / FOLLOWUP_CSV_NAME
 
 def log_event(event: dict):
-    """한 줄 JSON으로 계속 append (논문용 로그)."""
     event.setdefault("ts", time.time())
     with LOG_FILE.open("a", encoding="utf-8") as f:
         f.write(json.dumps(event, ensure_ascii=False) + "\n")
 
+def log_followup(ts: float, sid: str, ip: str | None, text: str):
+    is_new = not FOLLOWUP_CSV.exists()
+    with FOLLOWUP_CSV.open("a", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["ts", "sid", "ip", "text"])
+        if is_new:
+            w.writeheader()
+        w.writerow({"ts": ts, "sid": sid, "ip": ip, "text": text})
+
 
 # =========================
-# 3) 단일 페이지 UI (모달 채팅)
+# 3) 세션 상태(서버 메모리)
+# =========================
+SESSIONS: dict[str, dict] = {}
+# sid -> {
+#   "start_ts": float,
+#   "count": int,
+#   "phase": "qa" | "followup" | "done",
+#   "history": list[dict],  # (선택) GPT 문맥용
+# }
+
+def get_session(sid: str):
+    s = SESSIONS.get(sid)
+    if not s:
+        s = {
+            "start_ts": time.time(),
+            "count": 0,
+            "phase": "qa",
+            "history": []
+        }
+        SESSIONS[sid] = s
+    return s
+
+def remaining_time(s):
+    return max(0, int(TIME_LIMIT_SECONDS - (time.time() - s["start_ts"])))
+
+
+# =========================
+# 4) GPT 호출(서버)
+# =========================
+def ask_gpt(user_text: str, history: list[dict]) -> str:
+    # 너무 길어질 경우를 대비해 history를 적당히 제한(최근 n개만)
+    trimmed = history[-10:] if history else []
+
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": INCIDENT_FACTS},
+    ]
+    messages.extend(trimmed)
+    messages.append({"role": "user", "content": user_text})
+
+    resp = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=messages,
+        temperature=0.3,
+    )
+    return resp.choices[0].message.content.strip()
+
+
+# =========================
+# 5) 단일 페이지 UI
 # =========================
 HTML = f"""
 <!doctype html>
@@ -91,7 +156,7 @@ HTML = f"""
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AI Spokesperson Stimulus (Controlled)</title>
+  <title>AI Spokesperson Stimulus (GPT)</title>
   <style>
     :root {{
       --bg: #f6f7fb;
@@ -112,12 +177,9 @@ HTML = f"""
       background: var(--bg);
       color: var(--text);
     }}
-
-    /* Page mock (behind modal) */
     .page {{
       padding: 28px;
       opacity: .35;
-      filter: blur(0px);
     }}
     .topbar {{
       display:flex; justify-content:space-between; align-items:center;
@@ -129,16 +191,15 @@ HTML = f"""
       background: #fff; border:1px solid var(--line); padding: 10px 12px; border-radius: 10px;
     }}
 
-    /* Modal */
     .overlay {{
       position: fixed; inset: 0;
-      background: rgba(0,0,0,.35);
+      background: transparent;
       display:flex; align-items:center; justify-content:center;
       padding: 18px;
     }}
     .modal {{
       width: min(980px, 96vw);
-      height: min(640px, 86vh);
+      height: min(800px, 88vh);
       background: var(--modal);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
@@ -154,36 +215,54 @@ HTML = f"""
     }}
     .status {{
       display:flex; align-items:center; gap:10px;
-      font-weight: 600;
+      font-weight: 700;
     }}
     .dot {{
       width: 10px; height: 10px; border-radius: 50%;
       background: #2ecc71;
       box-shadow: 0 0 0 4px rgba(46,204,113,.18);
     }}
-    .close {{
-      border:none; background:transparent; font-size: 22px; cursor:pointer;
+    .right-controls {{
+      display:flex; align-items:center; gap:10px;
+    }}
+    .timer {{
+      font-weight: 800;
+      color: #111827;
+      border: 1px solid var(--line);
+      background: #fafafa;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+    }}
+    .exit {{
+      border:none; background:transparent; font-size: 14px; cursor:pointer;
       color: var(--muted);
-      line-height: 1;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+    }}
+    .exit:hover {{
+      color: #111827;
+      background: #fafafa;
     }}
 
-    /* ✅ FIX: grid -> flex column + min-height:0 */
     .modal-body {{
       flex: 1;
       display: flex;
       flex-direction: column;
       background: linear-gradient(180deg, #fff 0%, #fafbff 100%);
-      min-height: 0; /* 핵심: 자식 overflow가 정상작동 */
+      min-height: 0;
     }}
 
     .agent {{
       display:flex; flex-direction:column; align-items:center;
       padding: 18px 18px 0 18px;
       gap: 8px;
+      margin-bottom: 14px;
       flex: 0 0 auto;
     }}
     .avatar {{
-      width: 92px; height: 92px; border-radius: 50%;
+      width: 116px; height: 116px; border-radius: 50%;
       display:grid; place-items:center;
       background: radial-gradient(circle at 30% 30%, #ffe6f2, #fff);
       border: 2px solid #f3f4f7;
@@ -191,19 +270,18 @@ HTML = f"""
       overflow:hidden;
     }}
     .avatar img {{
-      width: 82px; height: 82px; object-fit: cover;
+      width: 104px; height: 104px; object-fit: cover;
     }}
     .agent-name {{
-      font-weight: 700;
+      font-weight: 800;
       color: var(--accent);
     }}
 
-    /* ✅ FIX: chat만 스크롤 */
     .chat {{
       flex: 1;
-      min-height: 0;   /* 핵심 */
+      min-height: 0;
       padding: 12px 18px 10px 18px;
-      overflow: auto;  /* 채팅만 스크롤 */
+      overflow: auto;
     }}
     .bubble-row {{
       display:flex; gap:10px; margin: 10px 0;
@@ -220,20 +298,11 @@ HTML = f"""
       line-height: 1.35;
       font-size: 15px;
     }}
-    .bubble.ai {{
-      background: #ffffff;
-    }}
     .bubble.user {{
       background: #fff0f6;
       border-color: #ffd0e2;
     }}
-    .meta {{
-      font-size: 12px;
-      color: var(--muted);
-      margin: 0 2px 2px 2px;
-    }}
 
-    /* ✅ FIX: 하단 고정 영역(sticky) */
     .bottom-area {{
       position: sticky;
       bottom: 0;
@@ -268,15 +337,15 @@ HTML = f"""
       background:#fff;
       display:flex; gap:10px;
       align-items:center;
-      border-top: 0;
     }}
     .input {{
       flex:1;
       border: 1px solid var(--line);
       border-radius: 12px;
       padding: 12px 12px;
-      color: var(--muted);
-      background: #fafafa;
+      background: #fff;
+      font-size: 14px;
+      outline: none;
     }}
     .send {{
       border:none;
@@ -284,8 +353,11 @@ HTML = f"""
       color:#fff;
       padding: 11px 14px;
       border-radius: 12px;
-      font-weight: 700;
-      opacity: .55;
+      font-weight: 800;
+      cursor:pointer;
+    }}
+    .send:disabled {{
+      opacity: .45;
       cursor:not-allowed;
     }}
     .hint {{
@@ -293,197 +365,252 @@ HTML = f"""
       color: var(--muted);
       padding: 0 18px 12px 18px;
       background:#fff;
-    }}    
-/* Priming screen */
-.priming-wrap {{
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 22px;
-  background: var(--bg);
-  z-index: 5;
-}}
-.priming-card {{
-  width: min(980px, 96vw);
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow:hidden;
-  max-height: 92vh;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}}
-.priming-top {{
-  padding: 18px;
-  border-bottom: 1px solid var(--line);
-  background: #fff;
-  flex: 0 0 auto;
-}}
-.news-img{{
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
-  padding: 18px;
-}}
-.news-photo {{
-  display: block;
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  margin-top: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-}}
-.news-headline{{
-  font-weight: 800;
-  font-size: 18px;
-  line-height: 1.25;
-  margin-bottom: 8px;
-  color: #111827;
-}}
-.news-sub{{
-  font-size: 13px;
-  color: var(--muted);
-  line-height: 1.4;
-}}
-.priming-mid{{
-  padding: 18px;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;
-}}
-.priming-title{{
-  font-weight: 800;
-  margin-bottom: 10px;
-}}
-.priming-bullets{{
-  margin: 0;
-  padding-left: 18px;
-  color: #111827;
-  line-height: 1.55;
-}}
-.priming-bullets li{{
-  margin: 8px 0;
-}}
-.priming-bottom{{
-  padding: 18px;
-  border-top: 1px solid var(--line);
-  background: #fff;
-  display:flex;
-  flex-direction:column;
-  gap: 10px;
-  align-items: center;
-}}
-.priming-cta{{
-  border: none;
-  background: var(--accent);
-  color: #fff;
-  font-weight: 800;
-  padding: 12px 14px;
-  border-radius: 12px;
-  cursor: pointer;
-}}
-.priming-note{{
-  font-size: 12px;
-  color: var(--muted);
-}}  
+    }}
+
+    .priming-wrap {{
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 22px;
+      background: var(--bg);
+      z-index: 5;
+    }}
+    .priming-card {{
+      width: min(980px, 96vw);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      max-height: 92vh;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }}
+    .priming-top {{
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 18px;
+      background: #fff;
+      flex: 0 0 auto;
+    }}
+    .mid-driver{{
+      height: 1px;
+      background: var(--line);
+      margin: 14px 0 12px 0;
+    }}
+    .priming-mid{{
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+    }}
+    .news-img{{
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+      padding: 18px;
+    }}
+    .news-photo {{
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: cover;
+      margin-top: -16px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }}
+    .news-headline{{
+      font-weight: 900;
+      font-size: 18px;
+      line-height: 1.25;
+      margin-bottom: 8px;
+      color: #111827;
+    }}
+    .news-sub{{
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }}
+    .priming-mid{{
+      padding: 18px;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+    }}
+    .priming-title{{
+      font-weight: 900;
+      margin-bottom: 10px;
+    }}
+    .priming-bullets{{
+      margin: 0;
+      padding-left: 18px;
+      color: #111827;
+      line-height: 1.55;
+    }}
+    .priming-bullets li{{
+      margin: 8px 0;
+    }}
+    .priming-bottom{{
+      padding: 18px;
+      border-top: 1px solid var(--line);
+      background: #fff;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      align-items: center;
+    }}
+    .priming-cta{{
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 900;
+      padding: 12px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+    }}
+    .priming-note{{
+      font-size: 12px;
+      color: var(--muted);
+    }}
+    /* typing indicator bubble */
+    .typing {{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      }}
+    .typing .dots {{
+      display: inline-flex;
+      gap: 4px;
+    }}
+    .typing .dots span {{
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--muted);
+      opacity: .25;
+      animation: blink 1.1s infinite;
+    }}
+    .typing .dots span:nth-child(2) {{ animation-delay: .15s; }}
+    .typing .dots span:nth-child(3) {{ animation-delay: .30s; }}
+    @keyframes blink {{
+      0%, 80%, 100% {{ opacity: .25; transform: translateY(0); }}
+      40% {{opacity: 1; transform: translateY(-2px); }}
+    }}
   </style>
 </head>
 <body>
-  <div class="page">
-    <div class="topbar">
-      <div class="brand">Aurelle Beauty</div>
-      <div class="nav">
-        <div>Home</div><div>Products</div><div>Chat</div>
-      </div>
-      <button class="btn">Contact Sales</button>
+<div id="endOverlay" style="
+  display:none;
+  position:fixed; inset:0;
+  background: rgba(0,0,0,.45);
+  z-index: 9999;
+  align-items:center; justify-content:center;
+  padding: 18px;
+">
+  <div style="
+    width: min(520px, 92vw);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 18px;
+  ">
+    <div style="font-weight:900; font-size:16px; margin-bottom:10px;">
+      대화가 종료되었습니다
     </div>
-  </div>
-
-<!-- Context Priming Screen -->
-<div class="priming-wrap" id="priming">
-  <div class="priming-card">
-
-    <div class="priming-top">
-      <div class="news-img" aria-label="뉴스 기사 이미지 자리">
-        <div class="news-headline">[속보] AI 보안 시스템 운영 대형 커머스 기업, 개인정보 유출 정황</div>
-        <div class="news-sub">외부 접근으로 고객 정보 노출… 기업 “경위 조사 중”</div>
-
-        <!-- fake 뉴스 이미지 -->
-        <img
-          src="/static/fake_news.png"
-          alt="개인정보 유출 관련 뉴스 이미지"
-          class="news-photo"
-        />
-      </div>
+    <div style="color: var(--muted); line-height:1.5; font-size:14px; margin-bottom:14px;">
+      아래 버튼을 눌러 이 창을 닫고, 나머지 설문에 응답해 주시기 바랍니다.
     </div>
-
-    <div class="priming-mid">
-      <div class="priming-title">📌 사건 요약</div>
-      <ul class="priming-bullets">
-        <li>당신은 방금 개인정보 유출 관련 안내를 받았습니다.</li>
-        <li>안내에 포함된 유출 여부 확인 페이지에서 조회한 결과, 당신의 계정 정보가 이번 사고의 영향 범위에 포함된 것으로 표시되었습니다.</li>
-        <li><b>유출된 정보:</b> 이름, 이메일 주소, 전화번호, 배송지 주소, 일부 주문 정보</li>
-        <li><b>유출되지 않은 정보:</b> 계정 비밀번호, 결제 정보, 신용카드 정보</li>
-      </ul>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button id="closeWindowBtn" style="
+        border:none;
+        background: var(--accent);
+        color:#fff;
+        font-weight:900;
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor:pointer;
+      ">창 닫기</button>
     </div>
-
-    <div class="priming-bottom">
-      <button class="priming-cta" id="startChatBtn">AI 대변인의 공식 대응 확인하기</button>
-      <div class="priming-note">※ 다음 단계부터는 사전에 정의된 질문 버튼으로만 진행됩니다.</div>
+    <div id="closeFailHint" style="display:none; margin-top:10px; font-size:12px; color: var(--muted);">
+      ※ 브라우저 설정에 따라 자동으로 창이 닫히지 않을 수 있습니다. 이 경우 탭(창)을 직접 닫아주세요.
     </div>
-
   </div>
 </div>
-  
+  <div class="priming-wrap" id="priming">
+    <div class="priming-card">
+      <div class="priming-top">
+        <div class="news-img">
+          <div class="news-headline">[속보] AI 보안 시스템 운영 대형 커머스 기업, 개인정보 유출</div>
+          <div class="news-sub">외부 접근으로 고객 정보 노출… 기업 “경위 조사 중”</div>
+        </div>
+      </div>
+
+      <div class="priming-mid">
+        <img src="/static/fake_news_v1.png" alt="개인정보 유출 관련 뉴스 이미지" class="news-photo" />
+        <div class="mid-driver"></div>
+        <div class="priming-title">📌 사건 요약</div>
+        <ul class="priming-bullets">
+          <li>당신은 방금 개인정보 유출 관련 안내를 받았습니다.</li>
+          <li>유출 여부 확인 결과, 당신의 계정 정보가 이번 사고 영향 범위에 포함된 것으로 표시되었습니다.</li>
+          <li><b>유출된 정보:</b> 이름, 이메일 주소, 전화번호, 배송지 주소, 일부 주문 정보</li>
+          <li><b>유출되지 않은 정보:</b> 계정 비밀번호, 결제 정보, 신용카드 정보</li>
+          <li><b>진행 방식:</b> 추천 질문을 참고해 직접 타이핑 후 전송합니다 (최대 3회)</li>
+        </ul>
+      </div>
+
+      <div class="priming-bottom">
+        <button class="priming-cta" id="startChatBtn">AI 대변인의 공식 대응 확인하기</button>
+        <div class="priming-note">※ 총 대화 시간 3분 / 질문 3회 제한</div>
+      </div>
+    </div>
+  </div>
+
   <div class="overlay" id="overlay" style="display:none">
     <div class="modal">
       <div class="modal-header">
         <div class="status"><span class="dot"></span><span>Online</span></div>
-        <button class="close" id="closeBtn" aria-label="close">×</button>
+        <div class="right-controls">
+          <div class="timer" id="timer">03:00</div>
+          <button class="exit" id="exitBtn" aria-label="exit">Exit</button>
+        </div>
       </div>
 
       <div class="modal-body">
         <div class="agent">
           <div class="avatar" title="AI Spokesperson">
-            <!-- 필요하면 여기 이미지 바꾸기 -->
-            <img src="https://i.imgur.com/0y0y0y0.png" onerror="this.style.display='none'" alt="" />
+            {f'<img src="{AVATAR_URL}" alt="AI Spokesperson" />' if AVATAR_MODE == "photo" else ''}
           </div>
-          <div class="agent-name" id="agentName">Elin</div>
+          <div class="agent-name" id="agentName">Eline</div>
         </div>
 
         <div class="chat" id="chat"></div>
 
-        <!-- ✅ FIX: chips + composer + hint 를 bottom-area로 묶어서 항상 아래에 고정 -->
         <div class="bottom-area">
           <div class="chips" id="chips"></div>
 
           <div class="composer">
-            <div class="input">자유 입력은 비활성화되어 있습니다. 아래 질문 버튼을 선택해 주세요.</div>
-            <button class="send">Send</button>
+            <input class="input" id="input" placeholder="추천 질문을 클릭해 텍스트를 입력하거나, 직접 질문을 키보드로 입력하세요 (최대 3회)" />
+            <button class="send" id="sendBtn">Send</button>
           </div>
 
-          <div class="hint">※ 실험 통제를 위해 질문은 미리 정의된 선택지로만 진행됩니다.</div>
+          <div class="hint" id="hint">※ 추천 질문은 참고용입니다. 클릭하면 입력창에 자동 입력됩니다.</div>
         </div>
       </div>
     </div>
   </div>
 
 <script>
-  // -------------------------
-  // 1) 세션(개인 대화) 만들기
-  // -------------------------
-  // 각 탭/브라우저마다 개인 세션이 되게 sessionStorage 사용
   function uuidv4() {{
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {{
       const r = Math.random() * 16 | 0, v = c === "x" ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     }});
   }}
+
   let sid = sessionStorage.getItem("sid");
   if(!sid) {{
     sid = uuidv4();
@@ -492,25 +619,73 @@ HTML = f"""
 
   const chat = document.getElementById("chat");
   const chips = document.getElementById("chips");
+  const input = document.getElementById("input");
+  const sendBtn = document.getElementById("sendBtn");
+  const hint = document.getElementById("hint");
+  const timerEl = document.getElementById("timer");
+  const exitBtn = document.getElementById("exitBtn");
+  const endOverlay = document.getElementById("endOverlay");
+  const closeWindowBtn = document.getElementById("closeWindowBtn");
+  const closeFailHint = document.getElementById("closeFailHint");
+
+  let endOverlayScheduled = false;
+
+  function showEndOverlay() {{
+    endOverlay.style.display = "flex";
+  }}
+
+  closeWindowBtn.onclick = () => {{
+    // 시도
+    window.close();
+
+    // 실패 대비: 400ms 후에도 창이 안 닫혔다고 가정되면 안내문 표시
+    setTimeout(() => {{
+      closeFailHint.style.display = "block";
+    }}, 400);
+  }};
 
   const QUESTIONS = {json.dumps(QUESTIONS, ensure_ascii=False)};
 
   function addBubble(role, text) {{
     const row = document.createElement("div");
     row.className = "bubble-row " + (role === "USER" ? "user" : "ai");
-
     const bubble = document.createElement("div");
     bubble.className = "bubble " + (role === "USER" ? "user" : "ai");
     bubble.textContent = text;
-
     row.appendChild(bubble);
     chat.appendChild(row);
     chat.scrollTop = chat.scrollHeight;
   }}
 
-  // -------------------------
-  // 2) 칩(질문 선택지) 렌더
-  // -------------------------
+  let typingRowEl = null;
+
+function showTyping() {{
+  if (typingRowEl) return;
+  const row = document.createElement("div");
+  row.className = "bubble-row ai";
+  const bubble = document.createElement("div");
+  bubble.className = "bubble ai";
+
+  const wrap = document.createElement("div");
+  wrap.className = "typing";
+  wrap.innerHTML = `
+    <span class="dots"><span></span><span></span><span></span></span>
+  `;
+  bubble.appendChild(wrap);
+  row.appendChild(bubble);
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+
+  typingRowEl = row;
+}}
+
+function hideTyping() {{
+  if (!typingRowEl) return;
+  typingRowEl.remove();
+  typingRowEl = null;
+}}
+  
+  // recommended chips: click -> fill input (not send)
   let activeCategory = null;
 
   function renderCategories() {{
@@ -545,24 +720,63 @@ HTML = f"""
       q.className = "chip active";
       q.textContent = label;
       q.onclick = () => {{
-        addBubble("USER", label);
-        wsSend({{ type: "question", sid, qid, label }});
+        input.value = label;
+        input.focus();
       }};
       chips.appendChild(q);
     }});
   }}
 
-  // 초기엔 카테고리 칩 보여주기
   renderCategories();
 
-  // -------------------------
-  // 3) WebSocket 연결(개인용)
-  // -------------------------
+  // websocket
   const wsProto = (location.protocol === "https:") ? "wss" : "ws";
   const ws = new WebSocket(`${{wsProto}}://${{location.host}}/ws?sid=${{encodeURIComponent(sid)}}`);
 
   function wsSend(obj) {{
     if(ws.readyState === 1) ws.send(JSON.stringify(obj));
+  }}
+
+  let state = {{
+    phase: "qa",          // qa | followup | done
+    remainingQuestions: 3,
+    remainingSeconds: 180
+  }};
+
+  function setUIEnabled(enabled) {{
+    input.disabled = !enabled;
+    sendBtn.disabled = !enabled;
+  }}
+
+  function updateHint() {{
+    if(state.phase === "qa") {{
+      hint.textContent = `※ 남은 질문 횟수: ${{state.remainingQuestions}} / 3 (총 3분 제한)`;
+    }} else if(state.phase === "followup") {{
+      hint.textContent = "※ 마지막으로 추천 질문 외 추가로 묻고 싶은 질문을 입력해 주세요 (이 답변은 별도 저장됩니다).";
+      input.placeholder = "궁금한 추가 질문을 입력해주세요 (1회)";
+    }} else {{
+      hint.textContent = "※ 대화가 종료되었습니다. Exit 또는 새로고침으로 종료할 수 있습니다.";
+    }}
+  }}
+
+  function formatTime(sec) {{
+    const m = String(Math.floor(sec / 60)).padStart(2, "0");
+    const s = String(sec % 60).padStart(2, "0");
+    return `${{m}}:${{s}}`;
+  }}
+
+  function tickTimer() {{
+    timerEl.textContent = formatTime(state.remainingSeconds);
+    if(state.remainingSeconds <= 0) {{
+      setUIEnabled(false);
+      state.phase = "done";
+      updateHint();
+      addBubble("AI", "대화 시간이 종료되었습니다. 참여해주셔서 감사합니다.");
+      try {{ ws.close(); }} catch(e) {{}}
+      return;
+    }}
+    state.remainingSeconds -= 1;
+    setTimeout(tickTimer, 1000);
   }}
 
   ws.onopen = () => {{
@@ -573,50 +787,98 @@ HTML = f"""
     try {{
       const msg = JSON.parse(ev.data);
       if(msg.type === "ai") {{
+        // ✅ (D-1) 생성중 표시 제거
+        hideTyping();
+        // 기존대로 AI 말풍선 추가
         addBubble("AI", msg.text);
+        // ✅ (D-2) 입력 다시 활성화 (세션 done이면 제외)
+        if(state.phase !== "done") setUIEnabled(true);
       }}
-    }} catch {{
-      // ignore
-    }}
+      if(msg.type === "state") {{
+        state.phase = msg.phase;
+        state.remainingQuestions = msg.remainingQuestions;
+        state.remainingSeconds = msg.remainingSeconds;
+        updateHint();
+        timerEl.textContent = formatTime(state.remainingSeconds);
+        if(state.phase === "done") {{
+          setUIEnabled(false);
+          
+          // 3~5초 후 종료 안내 오버레이
+          if(!endOverlayScheduled) {{
+            endOverlayScheduled = true;
+            setTimeout(showEndOverlay, 4000); // 4초
+          }}
+        }}
+      }}
+    }} catch(e) {{}}
   }};
 
   ws.onerror = () => {{
+    hideTyping();
+    setUIEnabled(true);
     addBubble("AI", "[연결 오류] 네트워크 상태를 확인해 주세요.");
   }};
 
   ws.onclose = () => {{
-    addBubble("AI", "[연결 종료] 새로고침하면 다시 연결됩니다.");
+    hideTyping();
+    // no spam
   }};
 
-  // =========================
-  // Context Priming → Chat 전환
-  // =========================
+  function sendText() {{
+    const text = (input.value || "").trim();
+    if(!text) return;
+
+    if(state.phase === "qa") {{
+      addBubble("USER", text);
+      setUIEnabled(false);
+      showTyping();
+      wsSend({{ type: "user_message", sid, text }});
+      input.value = "";
+    }} else if(state.phase === "followup") {{
+      addBubble("USER", text);
+      wsSend({{ type: "followup_answer", sid, text }});
+      input.value = "";
+      setUIEnabled(false);
+    }}
+  }}
+
+  sendBtn.onclick = sendText;
+  input.addEventListener("keydown", (e) => {{
+    if(e.key === "Enter") {{
+      e.preventDefault();
+      sendText();
+    }}
+  }});
+
+  // Exit: close ws + hide overlay + show end message
+  exitBtn.onclick = () => {{
+    try {{ ws.close(); }} catch(e) {{}}
+    document.getElementById("overlay").style.display = "none";
+    document.getElementById("priming").style.display = "flex";
+  }};
+
+  // priming -> chat
   const priming = document.getElementById("priming");
   const overlay = document.getElementById("overlay");
-  const startChatBtn = document.getElementById("startChatBtn");
-
-  startChatBtn.onclick = () => {{
+  document.getElementById("startChatBtn").onclick = () => {{
     priming.style.display = "none";
     overlay.style.display = "flex";
-    chat.scrollTop = chat.scrollHeight;
+    updateHint();
+    tickTimer();
   }};
 </script>
 </body>
 </html>
 """
 
-
 @app.get("/")
 async def home():
     return HTMLResponse(HTML)
 
-
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
-    # 각 접속은 "개인 세션" (브로드캐스트/방 없음)
     await ws.accept()
 
-    # query param sid
     sid = None
     try:
         sid = ws.query_params.get("sid")
@@ -626,8 +888,16 @@ async def ws_endpoint(ws: WebSocket):
 
     client_ip = ws.client.host if ws.client else None
 
-    # 연결 로그
+    s = get_session(sid)
     log_event({"event": "connect", "sid": sid, "ip": client_ip})
+
+    async def send_state():
+        await ws.send_text(json.dumps({
+            "type": "state",
+            "phase": s["phase"],
+            "remainingQuestions": max(0, MAX_QUESTIONS - s["count"]),
+            "remainingSeconds": remaining_time(s),
+        }, ensure_ascii=False))
 
     try:
         while True:
@@ -639,37 +909,141 @@ async def ws_endpoint(ws: WebSocket):
 
             mtype = payload.get("type")
 
+            # 시간 제한 체크 (서버 기준)
+            if remaining_time(s) <= 0 and s["phase"] != "done":
+                s["phase"] = "done"
+                log_event({"event": "time_over", "sid": sid})
+                await send_state()
+                await ws.send_text(json.dumps({
+                    "type": "ai",
+                    "text": "대화 시간이 종료되었습니다. 참여해주셔서 감사합니다."
+                }, ensure_ascii=False))
+                await ws.close()
+                break
+
             if mtype == "hello":
-                # 첫 턴: AI 대변인이 먼저 발화
                 log_event({"event": "hello", "sid": sid})
                 first_msg = (
-                    "안녕하세요. 저는 본 사건에 대해 회사의 공식 입장을 전달하는 AI 대변인 ㅇㅇㅇ입니다. \n\n"
-                    "먼저 이번 개인정보 유출 사고에 대해 사과드립니다. \n\n"
-                    "저는 현재 확인된 사실과 회사의 대응 상황에 궁금하신 점을 안내드릴 예정입니다. \n아래에서 궁금하신 질문을 선택해주시면 그에 대한 정보를 안내드리겠습니다."
+                    "안녕하세요. 저는 본 사건에 대해 회사의 공식 입장을 전달하는 AI 대변인 Eline입니다.\n\n"
+                    "먼저 이번 개인정보 유출 사고로 불편과 걱정을 드린 점 사과드립니다.\n\n"
+                    "추천 질문을 참고해 궁금하신 내용을 직접 입력해 주세요. (최대 3회 / 총 3분)"
                 )
                 await ws.send_text(json.dumps({"type": "ai", "text": first_msg}, ensure_ascii=False))
+                await send_state()
 
-            elif mtype == "question":
-                qid = str(payload.get("qid", ""))[:64]
-                label = str(payload.get("label", ""))[:200]
+            elif mtype == "user_message":
+                if s["phase"] != "qa":
+                    log_event({"event": "blocked_message_phase", "sid": sid, "phase": s["phase"]})
+                    await ws.send_text(json.dumps({
+                        "type": "ai",
+                        "text": "현재 단계에서는 이 입력을 받을 수 없습니다."
+                    }, ensure_ascii=False))
+                    await send_state()
+                    continue
+
+                if s["count"] >= MAX_QUESTIONS:
+                    s["phase"] = "followup"
+                    log_event({"event": "blocked_message_limit", "sid": sid})
+                    await send_state()
+                    await ws.send_text(json.dumps({
+                        "type": "ai",
+                        "text": "질문 횟수(3회)가 모두 사용되었습니다. 마지막으로 추가로 하고 싶은 말씀이 있나요?"
+                    }, ensure_ascii=False))
+                    continue
+
+                user_text = str(payload.get("text", ""))[:2000].strip()
+                if not user_text:
+                    await send_state()
+                    continue
 
                 # 로그
-                log_event({"event": "question", "sid": sid, "qid": qid, "label": label})
+                log_event({"event": "user_message", "sid": sid, "text": user_text[:500]})
+                # 🔔 typing ON (GPT 응답 생성 시작)
+                await ws.send_text(json.dumps({
+                    "type": "typing",
+                    "on": True
+                }, ensure_ascii=False))
 
-                # 캐시 답변
-                answer = ANSWERS.get(qid)
-                if not answer:
-                    answer = "해당 질문은 현재 실험 설계상 제공되지 않는 항목입니다. 다른 질문을 선택해 주세요."
+                # GPT 호출 (blocking 방지: thread로 돌림)
+                try:
+                    s["history"].append({"role": "user", "content": user_text})
+                    answer = await asyncio.to_thread(ask_gpt, user_text, s["history"])
+                    s["history"].append({"role": "assistant", "content": answer})
+                except Exception as e:
+                    log_event({"event": "gpt_error", "sid": sid, "err": str(e)[:300]})
+                    try:
+                         await ws.send_text(json.dumps({
+                              "type": "typing",
+                              "on": False
+                         }, ensure_ascii=False))
+                    except Exception:
+                        pass
+
+                    answer = "현재 응답 생성 과정에서 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+
+                # 🔕 typing OFF (GPT 응답 생성 종료)
+                await ws.send_text(json.dumps({
+                    "type": "typing",
+                    "on": False
+                }, ensure_ascii=False))
 
                 await ws.send_text(json.dumps({"type": "ai", "text": answer}, ensure_ascii=False))
 
-            else:
-                # 통제용: 자유 입력은 받지 않음 (로그만 남기고 안내)
-                log_event({"event": "blocked_input", "sid": sid, "raw": str(payload)[:500]})
+                # 카운트 증가
+                s["count"] += 1
+                log_event({"event": "count_inc", "sid": sid, "count": s["count"]})
+                await send_state()
+
+                # 3회 도달하면 followup 안내
+                if s["count"] >= MAX_QUESTIONS and s["phase"] == "qa":
+                    s["phase"] = "followup"
+                    log_event({"event": "enter_followup", "sid": sid})
+                    await send_state()
+                    await ws.send_text(json.dumps({
+                        "type": "ai",
+                        "text": "마지막으로 추가로 하고 싶은 말씀이 있나요? (이 답변은 별도로 저장됩니다.)"
+                    }, ensure_ascii=False))
+
+            elif mtype == "followup_answer":
+                if s["phase"] != "followup":
+                    log_event({"event": "blocked_followup_phase", "sid": sid, "phase": s["phase"]})
+                    await send_state()
+                    continue
+
+                text = str(payload.get("text", ""))[:4000].strip()
+                if not text:
+                    await send_state()
+                    continue
+
+                ts = time.time()
+                log_event({"event": "followup_answer", "sid": sid, "text": text[:500]})
+                log_followup(ts=ts, sid=sid, ip=client_ip, text=text)
+
+                s["phase"] = "done"
+                log_event({"event": "done", "sid": sid})
+                await send_state()
+
                 await ws.send_text(json.dumps({
                     "type": "ai",
-                    "text": "실험 통제를 위해 자유 입력은 비활성화되어 있습니다. 하단 질문 버튼을 선택해 주세요."
+                    "text": "감사합니다. AI 대변인과의 대화가 종료되었습니다."
                 }, ensure_ascii=False))
+                await ws.close()
+                break
+
+            elif mtype == "exit":
+                log_event({"event": "exit", "sid": sid})
+                s["phase"] = "done"
+                await send_state()
+                await ws.close()
+                break
+
+            else:
+                log_event({"event": "unknown_input", "sid": sid, "raw": str(payload)[:500]})
+                await ws.send_text(json.dumps({
+                    "type": "ai",
+                    "text": "알 수 없는 요청입니다."
+                }, ensure_ascii=False))
+                await send_state()
 
     except WebSocketDisconnect:
         log_event({"event": "disconnect", "sid": sid})
@@ -682,7 +1056,6 @@ async def ws_endpoint(ws: WebSocket):
 
 
 if __name__ == "__main__":
-    import os
     import uvicorn
     port = int(os.environ.get("PORT", "8000"))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
