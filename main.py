@@ -270,7 +270,7 @@ HTML = f"""
       overflow:hidden;
     }}
     .avatar img {{
-      width: 104px; height: 104px; object-fit: cover;
+      width: 116px; height: 116px; object-fit: cover; border-radius: 50%; transform: scale(1.12);
     }}
     .agent-name {{
       font-weight: 800;
