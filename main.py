@@ -165,8 +165,8 @@ HTML = f"""
       --text: #1f2430;
       --muted: #6b7280;
       --chip: #f1f2f6;
-      --chip-on: #e9e6ff;
-      --accent: #d67aa5;
+      --chip-on: #ecf0fc;
+      --accent: #4169E1;
       --shadow: 0 10px 35px rgba(0,0,0,.18);
       --radius: 16px;
     }}
@@ -264,7 +264,7 @@ HTML = f"""
     .avatar {{
       width: 116px; height: 116px; border-radius: 50%;
       display:grid; place-items:center;
-      background: radial-gradient(circle at 30% 30%, #ffe6f2, #fff);
+      background: radial-gradient(circle at 30% 30%, #dbeafe, #fff);
       border: 2px solid #f3f4f7;
       box-shadow: 0 12px 25px rgba(0,0,0,.12);
       overflow:hidden;
@@ -299,8 +299,8 @@ HTML = f"""
       font-size: 15px;
     }}
     .bubble.user {{
-      background: #fff0f6;
-      border-color: #ffd0e2;
+      background: #F4F7FD;
+      border-color: #ecf0fc;
     }}
 
     .bottom-area {{
@@ -376,8 +376,10 @@ HTML = f"""
       padding: 40px 22px;
       background: var(--bg);
       z-index: 5;
+      flex-direction: column;
     }}
     .priming-card {{
+      position: relative;
       width: min(980px, 96vw);
       background: #fff;
       border: 1px solid var(--line);
@@ -418,7 +420,7 @@ HTML = f"""
       width: 100%;
       height: auto;
       object-fit: cover;
-      margin-top: -16px;
+      margin-top: 0px;
       border-radius: 12px;
       border: 1px solid var(--line);
     }}
@@ -454,13 +456,31 @@ HTML = f"""
       margin: 8px 0;
     }}
     .priming-bottom{{
-      padding: 18px;
+      position: stichky;
+      bottom: 0;
+      width: 100%;
+      box-sizing: border-box;
+      padding 16px 18px;
       border-top: 1px solid var(--line);
       background: #fff;
       display:flex;
       flex-direction:column;
       gap: 10px;
       align-items: center;
+    }}
+
+    .priming-bottom-row{{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      width:100%;
+      justify-content:space-between;
+    }}
+
+    .priming-stepnote{{
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
     }}
     .priming-cta{{
       border: none;
@@ -498,6 +518,117 @@ HTML = f"""
     @keyframes blink {{
       0%, 80%, 100% {{ opacity: .25; transform: translateY(0); }}
       40% {{opacity: 1; transform: translateY(-2px); }}
+    }}
+    .step-pill{{
+      width: 26px; height: 26px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      display:grid; place-items:center;
+      background:#fff;
+      font-weight:800;
+    }}
+    .step-pill.active{{
+      background: var(--chip-on);
+      border-color: #d8d2ff;
+      color: #111827;
+    }}
+
+    .news-card{{
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: #fff;
+      margin: 12px 0;
+    }}
+    .news-card-h{{ font-weight: 900; font-size: 16px; margin-bottom: 6px; }}
+    .news-card-s{{ font-size: 13px; color: var(--muted); margin-bottom: 10px; line-height:1.35; }}
+    .news-card-b{{ font-size: 14px; line-height:1.6; color:#111827; white-space: normal; }}
+
+    .priming-cta.ghost{{
+      background:#fff;
+      color:#111827;
+      border: 1px solid var(--line);
+    }}
+
+    .quiz-q{{
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background:#fff;
+      margin: 12px 0;
+    }}
+    .quiz-q-title{{
+      font-weight: 900;
+      margin-bottom: 10px;
+      line-height:1.4;
+    }}
+    .quiz-opt{{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding: 8px 10px;
+      border-radius: 12px;
+      cursor:pointer;
+    }}
+    .quiz-opt:hover{{ background:#fafafa; }}
+    .quiz-opt input{{ margin-top: 3px; }}
+
+    .quiz-actions{{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+    }}
+
+    .hint-overlay{{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 99999;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+    }}
+    .hint-modal{{
+      width: min(720px, 94vw);
+      background:#fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }}
+    .hint-title{{ font-weight: 900; margin-bottom: 6px; }}
+    .hint-sub{{ color: var(--muted); font-size: 13px; margin-bottom: 10px; }}
+    .hint-body{{
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background:#fafafa;
+      line-height: 1.55;
+      font-size: 14px;
+    }}
+    .hint-close{{
+      border:none;
+      background: var(--accent);
+      color:#fff;
+      font-weight:900;
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+    }}
+    .news-photo-placeholder{{
+      width: 100%;
+      height: 220px;              /* 이미지 자리 높이 */
+      border-radius: 12px;
+      border: 1px dashed var(--line);
+      background: #fafafa;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color: var(--muted);
+      font-size: 13px;
     }}
   </style>
 </head>
@@ -542,29 +673,133 @@ HTML = f"""
 </div>
   <div class="priming-wrap" id="priming">
     <div class="priming-card">
-      <div class="priming-top">
+
+      <!-- STEP HEADER (optional) -->
+      <div class="priming-top" style="padding-bottom:10px;">
         <div class="news-img">
-          <div class="news-headline">[속보] AI 보안 시스템 운영 대형 커머스 기업, 개인정보 유출</div>
-          <div class="news-sub">외부 접근으로 고객 정보 노출… 기업 “경위 조사 중”</div>
+          <div class="news-headline" id="primingStepTitle">Context Priming: 실험 시나리오 및 실험 방식 확인</div>
+          <div class="news-sub" id="primingStepSub">아래 내용을 꼼꼼히 확인해 주세요.</div>
+      </div>
+      <div class="mid-driver"></div>
+
+      <div class="priming-mid" id="primingSteps">
+        <!-- News #1 -->
+        <div class="priming-step" id="primingStep1">
+          <div class="news-card">
+            <div class="news-card-h">대형 커머스 기업서 개인정보 유출 사고 발생</div>
+            <div class="news-card-s">AI 기반 자동화 운영 체계 속 다수 이용자 정보 노출</div>
+
+            <!-- ✅ 이미지 자리(나중에 img로 교체 가능) -->
+            <img src="/static/news_1.png" alt="뉴스 1 이미지" class="news-photo" />
+
+            <div class="news-card-b" style="margin-top:10px;">
+              국내 대형 커머스 기업에서 개인정보 유출 사고가 발생해 이용자들의 우려가 확산되고 있다. 이번 사고로 이름과 연락처, 배송지 등 일부 개인정보가 외부에 노출됐을 가능성이 제기되며, 다수의 이용자가 영향을 받은 것으로 전해졌다.<br><br>
+              해당 기업은 최근 보안 운영 전반을 자동화된 AI 시스템으로 전환하며 주목을 받아왔다. 사고 발생 당시에도 관련 시스템은 AI만으로 운영됐으며, 인간 운영자의 직접적인 개입은 없었던 것으로 알려졌다.
+            </div>
+          </div>
+        </div>
+
+        <!-- News #2 -->
+        <div class="priming-step" id="primingStep2" style="display:none;">
+          <div class="news-card">
+            <div class="news-card-h">AI 운영 환경서 발생한 개인정보 사고, 사회적 논의로 확산</div>
+            <div class="news-card-s">정부 조사 착수… 책임 구조 둘러싼 해석 엇갈려</div>
+
+            <img src="/static/news_2.png" alt="뉴스 2 이미지" class="news-photo" />
+
+            <div class="news-card-b" style="margin-top:10px;">
+              이번 개인정보 유출 사고는 단순한 기업 차원의 문제가 아닌 사회적 쟁점으로 확산되고 있다. 특히 인간의 개입 없이 운영되는 AI 시스템에서 사고가 발생했을 경우, 책임의 주체를 어떻게 설정해야 하는지를 두고 논의가 이어지고 있다.<br><br>
+              일부 전문가들은 기존의 기업 책임 구조만으로는 이러한 상황을 설명하기 어렵다는 의견을 내놓고 있다. 정부는 관계 기관과 함께 조사에 착수했으며, 서비스 운영과 재발 방지 방안에 대한 검토도 진행 중이다. 이용자 불안 역시 지속되고 있다.
+            </div>
+          </div>
+        </div>
+
+        <!-- News #3 -->
+        <div class="priming-step" id="primingStep3" style="display:none;">
+          <div class="news-card">
+            <div class="news-card-h">개인정보 유출 사고 대응, AI 대변인 전면에</div>
+            <div class="news-card-s">공식 입장·고객 소통 창구 AI로 전환</div>
+
+            <img src="/static/news_3.png" alt="뉴스 3 이미지" class="news-photo" />
+
+            <div class="news-card-b" style="margin-top:10px;">
+              해당 커머스 기업은 개인정보 유출 사고와 관련한 공식 브리핑과 후속 대응을 인간 대신 AI 대변인을 통해 진행하겠다고 밝혔다. 사고 경과와 관련된 공지 사항은 AI 대변인을 통해 순차적으로 전달될 예정이다.<br><br>
+              기업 측은 고객 문의 대응과 공지 전달 역시 AI 기반 커뮤니케이션 창구를 통해 이뤄진다고 설명했다. 이에 따라 사고 이후 정보 전달 방식과 대응 주체에 변화가 나타나고 있다.
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="priming-step" id="primingStep4" style="display:none;">
+          <img src="/static/fake_news_v1.png" alt="개인정보 유출 관련 뉴스 이미지" class="news-photo" />
+          <div class="mid-driver"></div>
+          <div class="priming-title">📌 사건 요약</div>
+          <ul class="priming-bullets">
+            <li>해당 기업은 보안 운영 전반을 인간의 개입 없이 AI 시스템이 단독 수행하는 구조를 채택하고 있었습니다.</li>
+            <li>사고 당시의 접근 통제 및 대응 판단은 모두 자동화된 AI 보안 시스템에 의해 이루어졌습니다.</li>
+            <li>당신의 개인정보 유출 여부를 확인한 결과, 당신의 계정 정보가 이번 사고 영향 범위에 포함된 것으로 표시되었습니다.</li>
+            <li><b>노출된 것으로 표기된 정보:</b> 이름, 이메일 주소, 전화번호, 배송지 주소, 일부 주문 정보</li>
+            <li><b>포함되지 않은 정보:</b> 계정 비밀번호, 결제 정보, 신용카드 정보</li>
+          </ul>
+        </div>
+
+        <!-- Quiz Template (step 5~7에서 재사용) -->
+        <div class="priming-step" id="primingQuizStep" style="display:none;">
+          <div class="priming-title">❓ 시나리오 이해 확인 퀴즈</div>
+          <div class="news-sub" style="margin-bottom:12px;">
+            보기 중 <b>올바른 것</b>을 선택해 주세요.
+          </div>
+
+          <div class="quiz-block" id="quizBlock"></div>
+
+          <div class="quiz-actions">
+            <button class="priming-cta" id="checkQuizBtn">정답 확인</button>
+            <div class="priming-note" id="quizHintText">※ 정답을 선택해야만 다음 단계로 넘어갈 수 있습니다.</div>
+          </div>
+
+          <!-- Hint Popup -->
+          <div class="hint-overlay" id="hintOverlay" style="display:none;">
+            <div class="hint-modal">
+              <div class="hint-title">시나리오 내용을 다시 확인해주세요!</div>
+              <div class="hint-sub">Hint: 아래 뉴스 내용을 참고하세요.</div>
+              <div class="hint-body" id="hintBody"></div>
+              <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+                <button class="hint-close" id="hintCloseBtn">닫기</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Guide -->
+        <div class="priming-step" id="primingStep8" style="display:none;">
+          <div class="priming-title">⚠️ 실험 진행 안내</div>
+          <ul class="priming-bullets">
+            <li>다음 페이지에서는 앞서 보도된 개인정보 유출 기업의 <b>AI 대변인</b>과 1:1 소통이 시작됩니다.</li>
+            <li>소통 과정에서는 발생한 사건에 대한 회사의 공식 입장과 대응을 확인할 수 있습니다.</li>
+          </ul>
+
+          <div class="mid-driver"></div>
+
+          <div class="priming-title">실험 방식 안내</div>
+          <ul class="priming-bullets">
+            <li><b>시간:</b> 3분 (조건 충족 시 조기 종료 가능)</li>
+            <li><b>질문 구성:</b> 지정질문 3개 + 자유 질문 1개</li>
+            <li><b>입력 방식:</b> 타이핑 또는 클릭 입력 (결과는 동일하게 처리)</li>
+          </ul>
         </div>
       </div>
-
-      <div class="priming-mid">
-        <img src="/static/fake_news_v1.png" alt="개인정보 유출 관련 뉴스 이미지" class="news-photo" />
-        <div class="mid-driver"></div>
-        <div class="priming-title">📌 사건 요약</div>
-        <ul class="priming-bullets">
-          <li>당신은 방금 개인정보 유출 관련 안내를 받았습니다.</li>
-          <li>유출 여부 확인 결과, 당신의 계정 정보가 이번 사고 영향 범위에 포함된 것으로 표시되었습니다.</li>
-          <li><b>유출된 정보:</b> 이름, 이메일 주소, 전화번호, 배송지 주소, 일부 주문 정보</li>
-          <li><b>유출되지 않은 정보:</b> 계정 비밀번호, 결제 정보, 신용카드 정보</li>
-          <li><b>진행 방식:</b> 추천 질문을 참고해 직접 타이핑 후 전송합니다 (최대 3회)</li>
-        </ul>
       </div>
 
+      <!-- Bottom Nav -->
       <div class="priming-bottom">
-        <button class="priming-cta" id="startChatBtn">AI 대변인의 공식 대응 확인하기</button>
-        <div class="priming-note">※ 총 대화 시간 3분 / 질문 3회 제한</div>
+      <div class="priming-bottom-row">
+        <button class="priming-cta ghost" id="prevStepBtn">이전</button>
+        <div class="priming-stepnote" id="primingBottomNote">※ 1/8 단계</div>
+        <button class="priming-cta" id="nextStepBtn">다음</button>
+        <button class="priming-cta" id="startExperimentBtn" style="display:none;">
+          AI 대변인의 공식 대응 확인하기
+        </button>
+        </div>
       </div>
     </div>
   </div>
@@ -853,19 +1088,239 @@ function hideTyping() {{
   // Exit: close ws + hide overlay + show end message
   exitBtn.onclick = () => {{
     try {{ ws.close(); }} catch(e) {{}}
-    document.getElementById("overlay").style.display = "none";
-    document.getElementById("priming").style.display = "flex";
+    overlay.style.display = "none";
+    priming.style.display = "flex";
   }};
 
-  // priming -> chat
-  const priming = document.getElementById("priming");
-  const overlay = document.getElementById("overlay");
-  document.getElementById("startChatBtn").onclick = () => {{
-    priming.style.display = "none";
-    overlay.style.display = "flex";
-    updateHint();
-    tickTimer();
+
+// =========================
+// Priming: 8-step flow
+// =========================
+const priming = document.getElementById("priming");
+const overlay = document.getElementById("overlay");
+
+const stepElMap = {{
+  1: document.getElementById("primingStep1"),
+  2: document.getElementById("primingStep2"),
+  3: document.getElementById("primingStep3"),
+  4: document.getElementById("primingStep4"),
+  5: document.getElementById("primingQuizStep"),
+  6: document.getElementById("primingQuizStep"),
+  7: document.getElementById("primingQuizStep"),
+  8: document.getElementById("primingStep8"),
+}};
+
+const uniqueStepEls = [
+  document.getElementById("primingStep1"),
+  document.getElementById("primingStep2"),
+  document.getElementById("primingStep3"),
+  document.getElementById("primingStep4"),
+  document.getElementById("primingQuizStep"),
+  document.getElementById("primingStep8"),
+];
+
+const prevStepBtn = document.getElementById("prevStepBtn");
+const nextStepBtn = document.getElementById("nextStepBtn");
+const startExperimentBtn = document.getElementById("startExperimentBtn");
+const primingBottomNote = document.getElementById("primingBottomNote");
+
+const TOTAL_STEPS = 8;
+let primingStep = 1; // 1~8
+
+
+function setStepHeader(n){{
+  const title = document.getElementById("primingStepTitle");
+  const sub = document.getElementById("primingStepSub");
+
+  const headers = {{
+    1: ["📰 뉴스 기사 확인", ""],
+    2: ["📰 뉴스 기사 확인", ""],
+    3: ["📰 뉴스 기사 확인", ""],
+    4: ["📌 사건 요약", ""],
+    5: ["🧐 사건 확인", ""],
+    6: ["🧐 사건 확인", ""],
+    7: ["🧐 사건 확인", ""],
+    8: ["🥽 실험 안내", ""],
   }};
+
+  title.textContent = headers[n][0];
+  sub.textContent = headers[n][1];
+}}
+
+function showOnly(el){{
+  uniqueStepEls.forEach(x => x.style.display = "none");
+  el.style.display = "block";
+}}
+
+function showStep(n){{
+  primingStep = n;
+
+  // show/hide step content
+  const el = stepElMap[n];
+  showOnly(el);
+
+  primingBottomNote.textContent = `※ ${{n}}/${{TOTAL_STEPS}} 단계`;
+
+  // nav
+  prevStepBtn.style.visibility = (n === 1) ? "hidden" : "visible";
+
+  // quiz steps(5~7): next 숨기고 check 버튼으로 진행
+  if(n >= 5 && n <= 7){{
+    nextStepBtn.style.display = "none";
+    startExperimentBtn.style.display = "none";
+    renderQuizPage(n - 5); // 0,1,2
+  }} else if(n === 8){{
+    nextStepBtn.style.display = "none";
+    startExperimentBtn.style.display = "inline-block";
+  }} else {{
+    nextStepBtn.style.display = "inline-block";
+    startExperimentBtn.style.display = "none";
+  }}
+
+  setStepHeader(n);
+}}
+
+prevStepBtn.onclick = () => {{
+  if(primingStep > 1) showStep(primingStep - 1);
+}};
+
+nextStepBtn.onclick = () => {{
+  if(primingStep < TOTAL_STEPS) showStep(primingStep + 1);
+}};
+
+// =========================
+// Quiz (one question per page)
+// =========================
+const quizBlock = document.getElementById("quizBlock");
+const checkQuizBtn = document.getElementById("checkQuizBtn");
+const hintOverlay = document.getElementById("hintOverlay");
+const hintBody = document.getElementById("hintBody");
+const hintCloseBtn = document.getElementById("hintCloseBtn");
+
+const NEWS_HINTS = {{
+  1: "뉴스 1 요약: 대형 커머스 기업에서 개인정보 유출 사고가 발생했으며, 보안 운영은 자동화된 AI 시스템으로 전환된 상태였고 사고 당시에도 인간 운영자의 직접 개입은 없었던 것으로 알려졌습니다.",
+  2: "뉴스 2 요약: 인간 개입 없는 AI 운영 환경에서 사고가 발생했을 때 책임 주체를 어떻게 설정할지 사회적 논의가 확산되고 있으며, 정부 조사와 재발 방지 검토가 진행 중입니다.",
+  3: "뉴스 3 요약: 해당 기업은 사고 브리핑과 고객 소통을 인간 대신 AI 대변인을 통해 진행한다고 밝혔고, 공지와 문의 대응도 AI 기반 창구로 이뤄진다고 설명했습니다.",
+}};
+
+const QUIZ = [
+  {{
+    id: "q1",
+    title: "Q1. 개인정보 유출 사고 당시 해당 기업의 보안 시스템은 어떻게 운영되고 있었습니까?",
+    options: [
+      "외부 보안 업체가 프로그램 운영 전권을 위임받아 운영하고 있었다.",
+      "임원급 인간 관리자가 회사 내부 보안 관리 AI의 판단을 최종 승인했다.",
+      "회사 내부의 보안 시스템이 인간의 개입 없이 AI 시스템만으로 운영되고 있었다.",
+      "사고 당시 보안 시스템은 산업 스파이에 의해 수동 모드로 전환되어 있었다.",
+    ],
+    answerIndex: 2,
+    hintNews: 1,
+  }},
+  {{
+    id: "q2",
+    title: "Q2. 이번 사고 이후 제기되고 있는 주요 사회적 논의는 무엇입니까?",
+    options: [
+      "AI 보안 기술의 성능 우수성에 대한 논의",
+      "해외 AI 기업과 국내 AI 기업의 기술력 차이에 대한 논의",
+      "인간의 개입 없이 운영되는 AI 시스템에서 발생한 사고의 책임 주체에 대한 논의",
+      "소비자 보상 금액의 적정성에 대한 논의",
+    ],
+    answerIndex: 2,
+    hintNews: 2,
+  }},
+  {{
+    id: "q3",
+    title: "Q3. 해당 기업은 이번 사고에 대한 공식 대응을 어떤 방식으로 진행하고 있나요?",
+    options: [
+      "CEO의 기자회견 및 청문회 참석",
+      "외부 홍보 대행사 활용",
+      "사고 상황에 대한 침묵",
+      "인간 대신 AI 대변인을 통해 공식 입장과 고객 소통 진행",
+    ],
+    answerIndex: 3,
+    hintNews: 3,
+  }},
+];
+
+let currentQuizIndex = 0;
+
+function renderQuizPage(idx){{
+  currentQuizIndex = idx;
+  const q = QUIZ[idx];
+
+  quizBlock.innerHTML = "";
+
+  const wrap = document.createElement("div");
+  wrap.className = "quiz-q";
+
+  const title = document.createElement("div");
+  title.className = "quiz-q-title";
+  title.textContent = q.title;
+  wrap.appendChild(title);
+
+  q.options.forEach((optText, optIdx) => {{
+    const opt = document.createElement("label");
+    opt.className = "quiz-opt";
+
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = q.id;
+    input.value = String(optIdx);
+
+    const div = document.createElement("div");
+    div.textContent = optText;
+
+    opt.appendChild(input);
+    opt.appendChild(div);
+    wrap.appendChild(opt);
+  }});
+
+  quizBlock.appendChild(wrap);
+}}
+
+function getSelectedIndex(qid){{
+  const el = document.querySelector('input[name="' + qid + '"]:checked');
+  if(!el) return null;
+  return parseInt(el.value, 10);
+}}
+
+function openHint(newsId){{
+  hintBody.textContent = NEWS_HINTS[newsId] || "관련 힌트를 불러오지 못했습니다.";
+  hintOverlay.style.display = "flex";
+}}
+
+hintCloseBtn.onclick = () => {{
+  hintOverlay.style.display = "none";
+}};
+
+checkQuizBtn.onclick = () => {{
+  const q = QUIZ[currentQuizIndex];
+  const sel = getSelectedIndex(q.id);
+
+  if(sel === null){{
+    openHint(q.hintNews);
+    return;
+  }}
+  if(sel !== q.answerIndex){{
+    openHint(q.hintNews);
+    return;
+  }}
+
+  // 정답이면 다음 단계로
+  hintOverlay.style.display = "none";
+  showStep(primingStep + 1); // 5->6->7->8
+}};
+
+// start experiment (Step 8 -> chat)
+startExperimentBtn.onclick = () => {{
+  priming.style.display = "none";
+  overlay.style.display = "flex";
+  updateHint();
+  tickTimer();
+}};
+
+// init
+showStep(1);
 </script>
 </body>
 </html>
