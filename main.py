@@ -678,6 +678,7 @@ HTML = f"""
         <div class="news-img">
           <div class="news-headline" id="primingStepTitle">Context Priming: 실험 시나리오 및 실험 방식 확인</div>
           <div class="news-sub" id="primingStepSub">아래 내용을 꼼꼼히 확인해 주세요.</div>
+        </div>
       </div>
     
       <div class="mid-driver"></div>
