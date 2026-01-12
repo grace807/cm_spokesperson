@@ -440,7 +440,8 @@ HTML = f"""
       padding: 18px;
       flex: 1 1 auto;
       min-height: 0;
-      overflow: auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }}
     .priming-title{{
       font-weight: 900;
@@ -456,15 +457,15 @@ HTML = f"""
       margin: 8px 0;
     }}
     .priming-bottom{{
-      position: stichky;
+      position: sticky;
       bottom: 0;
       width: 100%;
       box-sizing: border-box;
-      padding 16px 18px;
+      padding: 16px 18px;
       border-top: 1px solid var(--line);
       background: #fff;
       display:flex;
-      flex-direction:column;
+      flex: 0 0 auto;
       gap: 10px;
       align-items: center;
     }}
@@ -534,11 +535,11 @@ HTML = f"""
     }}
 
     .news-card{{
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px;
-      background: #fff;
-      margin: 12px 0;
+      border: none;
+      border-radius: 0px;
+      padding: 6px 2px;
+      background: transparent;
+      margin: 0;
     }}
     .news-card-h{{ font-weight: 900; font-size: 16px; margin-bottom: 6px; }}
     .news-card-s{{ font-size: 13px; color: var(--muted); margin-bottom: 10px; line-height:1.35; }}
@@ -673,13 +674,12 @@ HTML = f"""
 </div>
   <div class="priming-wrap" id="priming">
     <div class="priming-card">
-
-      <!-- STEP HEADER (optional) -->
       <div class="priming-top" style="padding-bottom:10px;">
         <div class="news-img">
           <div class="news-headline" id="primingStepTitle">Context Priming: 실험 시나리오 및 실험 방식 확인</div>
           <div class="news-sub" id="primingStepSub">아래 내용을 꼼꼼히 확인해 주세요.</div>
       </div>
+    
       <div class="mid-driver"></div>
 
       <div class="priming-mid" id="primingSteps">
@@ -697,81 +697,80 @@ HTML = f"""
               해당 기업은 최근 보안 운영 전반을 자동화된 AI 시스템으로 전환하며 주목을 받아왔다. 사고 발생 당시에도 관련 시스템은 AI만으로 운영됐으며, 인간 운영자의 직접적인 개입은 없었던 것으로 알려졌다.
             </div>
           </div>
+      </div>
+
+      <!-- News #2 -->
+      <div class="priming-step" id="primingStep2" style="display:none;">
+        <div class="news-card">
+          <div class="news-card-h">AI 운영 환경서 발생한 개인정보 사고, 사회적 논의로 확산</div>
+          <div class="news-card-s">정부 조사 착수… 책임 구조 둘러싼 해석 엇갈려</div>
+
+          <img src="/static/news_2.png" alt="뉴스 2 이미지" class="news-photo" />
+
+          <div class="news-card-b" style="margin-top:10px;">
+            이번 개인정보 유출 사고는 단순한 기업 차원의 문제가 아닌 사회적 쟁점으로 확산되고 있다. 특히 인간의 개입 없이 운영되는 AI 시스템에서 사고가 발생했을 경우, 책임의 주체를 어떻게 설정해야 하는지를 두고 논의가 이어지고 있다.<br><br>
+            일부 전문가들은 기존의 기업 책임 구조만으로는 이러한 상황을 설명하기 어렵다는 의견을 내놓고 있다. 정부는 관계 기관과 함께 조사에 착수했으며, 서비스 운영과 재발 방지 방안에 대한 검토도 진행 중이다. 이용자 불안 역시 지속되고 있다.
+          </div>
+        </div>
+      </div>
+
+      <!-- News #3 -->
+      <div class="priming-step" id="primingStep3" style="display:none;">
+        <div class="news-card">
+          <div class="news-card-h">개인정보 유출 사고 대응, AI 대변인 전면에</div>
+          <div class="news-card-s">공식 입장·고객 소통 창구 AI로 전환</div>
+
+          <img src="/static/news_3.png" alt="뉴스 3 이미지" class="news-photo" />
+
+          <div class="news-card-b" style="margin-top:10px;">
+            해당 커머스 기업은 개인정보 유출 사고와 관련한 공식 브리핑과 후속 대응을 인간 대신 AI 대변인을 통해 진행하겠다고 밝혔다. 사고 경과와 관련된 공지 사항은 AI 대변인을 통해 순차적으로 전달될 예정이다.<br><br>
+            기업 측은 고객 문의 대응과 공지 전달 역시 AI 기반 커뮤니케이션 창구를 통해 이뤄진다고 설명했다. 이에 따라 사고 이후 정보 전달 방식과 대응 주체에 변화가 나타나고 있다.
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="priming-step" id="primingStep4" style="display:none;">
+        <img src="/static/fake_news_v1.png" alt="개인정보 유출 관련 뉴스 이미지" class="news-photo" />
+        <div class="mid-driver"></div>
+        <div class="priming-title">📌 사건 요약</div>
+        <ul class="priming-bullets">
+          <li>해당 기업은 보안 운영 전반을 인간의 개입 없이 AI 시스템이 단독 수행하는 구조를 채택하고 있었습니다.</li>
+          <li>사고 당시의 접근 통제 및 대응 판단은 모두 자동화된 AI 보안 시스템에 의해 이루어졌습니다.</li>
+          <li>당신의 개인정보 유출 여부를 확인한 결과, 당신의 계정 정보가 이번 사고 영향 범위에 포함된 것으로 표시되었습니다.</li>
+          <li><b>노출된 것으로 표기된 정보:</b> 이름, 이메일 주소, 전화번호, 배송지 주소, 일부 주문 정보</li>
+          <li><b>포함되지 않은 정보:</b> 계정 비밀번호, 결제 정보, 신용카드 정보</li>
+        </ul>
+      </div>
+
+      <!-- Quiz Template (step 5~7에서 재사용) -->
+      <div class="priming-step" id="primingQuizStep" style="display:none;">
+        <div class="priming-title">❓ 시나리오 이해 확인 퀴즈</div>
+        <div class="news-sub" style="margin-bottom:12px;">
+          보기 중 <b>올바른 것</b>을 선택해 주세요.
         </div>
 
-        <!-- News #2 -->
-        <div class="priming-step" id="primingStep2" style="display:none;">
-          <div class="news-card">
-            <div class="news-card-h">AI 운영 환경서 발생한 개인정보 사고, 사회적 논의로 확산</div>
-            <div class="news-card-s">정부 조사 착수… 책임 구조 둘러싼 해석 엇갈려</div>
+        <div class="quiz-block" id="quizBlock"></div>
+        <div class="quiz-actions">
+          <button class="priming-cta" id="checkQuizBtn">정답 확인</button>
+          <div class="priming-note" id="quizHintText">※ 정답을 선택해야만 다음 단계로 넘어갈 수 있습니다.</div>
+        </div>
 
-            <img src="/static/news_2.png" alt="뉴스 2 이미지" class="news-photo" />
-
-            <div class="news-card-b" style="margin-top:10px;">
-              이번 개인정보 유출 사고는 단순한 기업 차원의 문제가 아닌 사회적 쟁점으로 확산되고 있다. 특히 인간의 개입 없이 운영되는 AI 시스템에서 사고가 발생했을 경우, 책임의 주체를 어떻게 설정해야 하는지를 두고 논의가 이어지고 있다.<br><br>
-              일부 전문가들은 기존의 기업 책임 구조만으로는 이러한 상황을 설명하기 어렵다는 의견을 내놓고 있다. 정부는 관계 기관과 함께 조사에 착수했으며, 서비스 운영과 재발 방지 방안에 대한 검토도 진행 중이다. 이용자 불안 역시 지속되고 있다.
+        <!-- Hint Popup -->
+        <div class="hint-overlay" id="hintOverlay" style="display:none;">
+          <div class="hint-modal">
+            <div class="hint-title">시나리오 내용을 다시 확인해주세요!</div>
+            <div class="hint-sub">Hint: 아래 뉴스 내용을 참고하세요.</div>
+            <div class="hint-body" id="hintBody"></div>
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+              <button class="hint-close" id="hintCloseBtn">닫기</button>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- News #3 -->
-        <div class="priming-step" id="primingStep3" style="display:none;">
-          <div class="news-card">
-            <div class="news-card-h">개인정보 유출 사고 대응, AI 대변인 전면에</div>
-            <div class="news-card-s">공식 입장·고객 소통 창구 AI로 전환</div>
-
-            <img src="/static/news_3.png" alt="뉴스 3 이미지" class="news-photo" />
-
-            <div class="news-card-b" style="margin-top:10px;">
-              해당 커머스 기업은 개인정보 유출 사고와 관련한 공식 브리핑과 후속 대응을 인간 대신 AI 대변인을 통해 진행하겠다고 밝혔다. 사고 경과와 관련된 공지 사항은 AI 대변인을 통해 순차적으로 전달될 예정이다.<br><br>
-              기업 측은 고객 문의 대응과 공지 전달 역시 AI 기반 커뮤니케이션 창구를 통해 이뤄진다고 설명했다. 이에 따라 사고 이후 정보 전달 방식과 대응 주체에 변화가 나타나고 있다.
-            </div>
-          </div>
-        </div>
-
-        <!-- Summary -->
-        <div class="priming-step" id="primingStep4" style="display:none;">
-          <img src="/static/fake_news_v1.png" alt="개인정보 유출 관련 뉴스 이미지" class="news-photo" />
-          <div class="mid-driver"></div>
-          <div class="priming-title">📌 사건 요약</div>
-          <ul class="priming-bullets">
-            <li>해당 기업은 보안 운영 전반을 인간의 개입 없이 AI 시스템이 단독 수행하는 구조를 채택하고 있었습니다.</li>
-            <li>사고 당시의 접근 통제 및 대응 판단은 모두 자동화된 AI 보안 시스템에 의해 이루어졌습니다.</li>
-            <li>당신의 개인정보 유출 여부를 확인한 결과, 당신의 계정 정보가 이번 사고 영향 범위에 포함된 것으로 표시되었습니다.</li>
-            <li><b>노출된 것으로 표기된 정보:</b> 이름, 이메일 주소, 전화번호, 배송지 주소, 일부 주문 정보</li>
-            <li><b>포함되지 않은 정보:</b> 계정 비밀번호, 결제 정보, 신용카드 정보</li>
-          </ul>
-        </div>
-
-        <!-- Quiz Template (step 5~7에서 재사용) -->
-        <div class="priming-step" id="primingQuizStep" style="display:none;">
-          <div class="priming-title">❓ 시나리오 이해 확인 퀴즈</div>
-          <div class="news-sub" style="margin-bottom:12px;">
-            보기 중 <b>올바른 것</b>을 선택해 주세요.
-          </div>
-
-          <div class="quiz-block" id="quizBlock"></div>
-
-          <div class="quiz-actions">
-            <button class="priming-cta" id="checkQuizBtn">정답 확인</button>
-            <div class="priming-note" id="quizHintText">※ 정답을 선택해야만 다음 단계로 넘어갈 수 있습니다.</div>
-          </div>
-
-          <!-- Hint Popup -->
-          <div class="hint-overlay" id="hintOverlay" style="display:none;">
-            <div class="hint-modal">
-              <div class="hint-title">시나리오 내용을 다시 확인해주세요!</div>
-              <div class="hint-sub">Hint: 아래 뉴스 내용을 참고하세요.</div>
-              <div class="hint-body" id="hintBody"></div>
-              <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
-                <button class="hint-close" id="hintCloseBtn">닫기</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Guide -->
-        <div class="priming-step" id="primingStep8" style="display:none;">
+       <!-- Guide -->
+       <div class="priming-step" id="primingStep8" style="display:none;">
           <div class="priming-title">⚠️ 실험 진행 안내</div>
           <ul class="priming-bullets">
             <li>다음 페이지에서는 앞서 보도된 개인정보 유출 기업의 <b>AI 대변인</b>과 1:1 소통이 시작됩니다.</li>
@@ -788,19 +787,20 @@ HTML = f"""
           </ul>
         </div>
       </div>
+                  <!-- Bottom Nav -->
+      <div class="priming-bottom">
+        <div class="priming-bottom-row">
+          <button class="priming-cta ghost" id="prevStepBtn">이전</button>
+          <div class="priming-stepnote" id="primingBottomNote">※ 1/8</div>
+          <button class="priming-cta" id="nextStepBtn">다음</button>
+          <button class="priming-cta" id="startExperimentBtn" style="display:none;">
+            AI 대변인의 공식 대응 확인하기
+          </button>
+          </div>
+      </div>
       </div>
 
-      <!-- Bottom Nav -->
-      <div class="priming-bottom">
-      <div class="priming-bottom-row">
-        <button class="priming-cta ghost" id="prevStepBtn">이전</button>
-        <div class="priming-stepnote" id="primingBottomNote">※ 1/8 단계</div>
-        <button class="priming-cta" id="nextStepBtn">다음</button>
-        <button class="priming-cta" id="startExperimentBtn" style="display:none;">
-          AI 대변인의 공식 대응 확인하기
-        </button>
-        </div>
-      </div>
+
     </div>
   </div>
 
@@ -1159,7 +1159,7 @@ function showStep(n){{
   const el = stepElMap[n];
   showOnly(el);
 
-  primingBottomNote.textContent = `※ ${{n}}/${{TOTAL_STEPS}} 단계`;
+  primingBottomNote.textContent = `${{n}}/${{TOTAL_STEPS}}`;
 
   // nav
   prevStepBtn.style.visibility = (n === 1) ? "hidden" : "visible";
